@@ -3315,6 +3315,14 @@ CLIActionsConfigDef::CLIActionsConfigDef()
     def->label = L("Save config file");
     def->tooltip = L("Save configuration to the specified file.");
     def->set_default_value(new ConfigOptionString());
+
+    def = this->add("server_port", coInt);
+    def->label = L("ServerPort");
+    def->tooltip =L("TCP/IP Port for Server to Listen");
+    def->min = 0;
+    def->max = 65535;
+    def->set_default_value(new ConfigOptionInt(0));
+	
 }
 
 CLITransformConfigDef::CLITransformConfigDef()
