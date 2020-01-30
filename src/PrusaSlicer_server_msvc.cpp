@@ -62,7 +62,7 @@ int wmain(int argc, wchar_t **argv)
         for (int i = 0; i < argc; ++ i)
             argv_ptrs[i] = argv_narrow[i].data();
         // Call the UTF8 main.
-        return Slic3r::CLI().run(argc, argv_ptrs.data());
+        return CLI().run(argc, argv_ptrs.data());
     }
 }
 
