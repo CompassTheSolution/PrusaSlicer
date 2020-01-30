@@ -170,6 +170,18 @@ if (WIN32)
     add_dependencies(PrusaSlicer_app_console PrusaSlicer)
     set_target_properties(PrusaSlicer_app_console PROPERTIES OUTPUT_NAME "prusa-slicer-console")
     target_link_libraries(PrusaSlicer_app_console PRIVATE boost_headeronly)
+
+    add_executable(PrusaSlicer_app_server PrusaSlicer_server_msvc.cpp log_catcher.cpp ${CMAKE_CURRENT_BINARY_DIR}/PrusaSlicer.rc)
+	# We directly link slicerlib to the server, not via PrusaSlicer.dll
+	target_link_libraries(PrusaSlicer_app_server libslic3r cereal boost_headeronly user32.lib Setupapi.lib)
+    # Generate debug symbols even in release mode.
+    if (MSVC)
+    target_link_options(PrusaSlicer_app_server PUBLIC "$<$<CONFIG:RELEASE>:/DEBUG>")
+    endif ()
+    target_compile_definitions(PrusaSlicer_app_server PRIVATE -DSLIC3R_WRAPPER_CONSOLE)
+    #add_dependencies(PrusaSlicer_app_server PrusaSlicer)
+    set_target_properties(PrusaSlicer_app_server PROPERTIES OUTPUT_NAME "prusa-slicer-server")
+    #target_link_libraries(PrusaSlicer_app_server PRIVATE boost_headeronly)
 endif ()
 
 # Link the resources dir to where Slic3r GUI expects it
@@ -222,6 +234,7 @@ if (WIN32)
     if (MSVC)
         install(TARGETS PrusaSlicer_app_gui RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}")
         install(TARGETS PrusaSlicer_app_console RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}")
+        install(TARGETS PrusaSlicer_app_server RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}")
     endif ()
 else ()
     install(TARGETS PrusaSlicer RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
