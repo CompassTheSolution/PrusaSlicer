@@ -282,7 +282,9 @@ public:
     // No status output or callback whatsoever, useful mostly for automatic tests.
     void                    set_status_silent() { m_status_callback = [](const SlicingStatus&){}; }
     // Register a custom status callback.
-    void                    set_status_callback(status_callback_type cb) { m_status_callback = cb; }
+    void                    set_status_callback(status_callback_type cb) {
+		m_status_callback = cb;
+	}
     // Calls a registered callback to update the status, or print out the default message.
     void                    set_status(int percent, const std::string &message, unsigned int flags = SlicingStatus::DEFAULT) {
 		if (m_status_callback) m_status_callback(SlicingStatus(percent, message, flags));

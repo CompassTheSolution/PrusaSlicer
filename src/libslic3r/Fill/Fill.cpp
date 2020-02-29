@@ -117,13 +117,13 @@ std::vector<SurfaceFill> group_fills(const Layer &layer)
 		        FlowRole extrusion_role = (surface.surface_type == stTop) ? frTopSolidInfill : (surface.is_solid() ? frSolidInfill : frInfill);
 		        bool     is_bridge 	    = layer.id() > 0 && surface.is_bridge();
 		        params.extruder 	 = layerm.region()->extruder(extrusion_role);
-		        params.pattern 		 = layerm.region()->config().fill_pattern.value;
-		        params.density       = float(layerm.region()->config().fill_density);
+		        params.pattern 		 = layerm.config().fill_pattern.value;
+		        params.density       = float(layerm.config().fill_density);
 
 		        if (surface.is_solid()) {
 		            params.density = 100.f;
 		            params.pattern = (surface.is_external() && ! is_bridge) ? 
-						(surface.is_top() ? layerm.region()->config().top_fill_pattern.value : layerm.region()->config().bottom_fill_pattern.value) :
+						(surface.is_top() ? layerm.config().top_fill_pattern.value : layerm.config().bottom_fill_pattern.value) :
 		                ipRectilinear;
 		        } else if (params.density <= 0)
 		            continue;
@@ -135,7 +135,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer)
 		                    ((surface.surface_type == stTop) ? erTopSolidInfill : erSolidInfill) :
 		                    erInternalInfill);
 		        params.bridge_angle = float(surface.bridge_angle);
-		        params.angle 		= float(Geometry::deg2rad(layerm.region()->config().fill_angle.value));
+		        params.angle 		= float(Geometry::deg2rad(layerm.config().fill_angle.value));
 		        
 		        // calculate the actual flow we'll be using for this infill
 		        params.flow = layerm.region()->flow(
@@ -270,7 +270,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer)
 	            params.pattern 		 = ipRectilinear;
 	            params.density 		 = 100.f;
 		        params.extrusion_role = erInternalInfill;
-		        params.angle 		= float(Geometry::deg2rad(layerm.region()->config().fill_angle.value));
+		        params.angle 		= float(Geometry::deg2rad(layerm.config().fill_angle.value));
 		        // calculate the actual flow we'll be using for this infill
 		        params.flow = layerm.region()->flow(
 		            frSolidInfill,
