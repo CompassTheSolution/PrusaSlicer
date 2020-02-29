@@ -33,6 +33,10 @@ enum PrintHostType {
     htOctoPrint, htDuet, htFlashAir, htAstroBox
 };
 
+enum ConnectorType {
+    ctStraight, ctRound, ctNone, ctCount,
+};
+
 enum InfillPattern {
     ipRectilinear, ipGrid, ipTriangles, ipStars, ipCubic, ipLine, ipConcentric, ipHoneycomb, ip3DHoneycomb,
     ipGyroid, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral, ipCount,
@@ -106,6 +110,16 @@ template<> inline const t_config_enum_values& ConfigOptionEnum<PrintHostType>::g
         keys_map["astrobox"]        = htAstroBox;
     }
     return keys_map;
+}
+
+template<> inline const t_config_enum_values& ConfigOptionEnum<ConnectorType>::get_enum_values() {
+	static t_config_enum_values keys_map;
+	if (keys_map.empty()) {
+		keys_map["straight"] = ctStraight;
+		keys_map["round"] = ctRound;
+		keys_map["none"] = ctNone;
+	}
+	return keys_map;
 }
 
 template<> inline const t_config_enum_values& ConfigOptionEnum<InfillPattern>::get_enum_values() {
@@ -205,6 +219,7 @@ public:
 private:
     void init_common_params();
     void init_fff_params();
+	void init_layer_pattern_params();
     void init_extruder_option_keys();
     void init_sla_params();
 
@@ -524,7 +539,25 @@ public:
     ConfigOptionInt                 top_solid_layers;
     ConfigOptionFloatOrPercent      top_solid_infill_speed;
     ConfigOptionBool                wipe_into_infill;
-
+	// layer_pattern parameters
+	ConfigOptionBool		layer_pattern_enabled;	// Ignore all of this if not enabled
+	ConfigOptionBool		layer_pattern_continuous_print;
+	ConfigOptionBool		layer_pattern_avoid_flyover;
+	ConfigOptionFloat		layer_pattern_minimum_z;
+	ConfigOptionFloat		layer_pattern_maximum_z;
+	ConfigOptionInt			layer_pattern_count;	// Count of patterns
+	ConfigOptionInts					layer_pattern_perimeters;
+	ConfigOptionEnums<InfillPattern>	layer_pattern_fill_pattern;
+	ConfigOptionEnums<ConnectorType>	layer_pattern_connector_type;
+	ConfigOptionPercents				layer_pattern_fill_density;
+	ConfigOptionFloats					layer_pattern_shift_distance;
+	ConfigOptionFloats					layer_pattern_fill_angle;
+	ConfigOptionBools					layer_pattern_angle_relative;
+	ConfigOptionFloats					layer_pattern_overshoot;
+	ConfigOptionFloats					layer_pattern_extrusion_width;
+	ConfigOptionFloats					layer_pattern_extrusion_multipier;
+	ConfigOptionBools					layer_pattern_infill_first;
+	ConfigOptionFloats					layer_pattern_line_gap;
 protected:
     void initialize(StaticCacheBase &cache, const char *base_ptr)
     {
@@ -564,6 +597,25 @@ protected:
         OPT_PTR(top_solid_infill_speed);
         OPT_PTR(top_solid_layers);
         OPT_PTR(wipe_into_infill);
+		// Layer Patterns
+		OPT_PTR(layer_pattern_enabled);
+		OPT_PTR(layer_pattern_continuous_print);
+		OPT_PTR(layer_pattern_avoid_flyover);
+		OPT_PTR(layer_pattern_minimum_z);
+		OPT_PTR(layer_pattern_maximum_z);
+		OPT_PTR(layer_pattern_count);
+		OPT_PTR(layer_pattern_perimeters);
+		OPT_PTR(layer_pattern_fill_pattern);
+		OPT_PTR(layer_pattern_connector_type);
+		OPT_PTR(layer_pattern_fill_density);
+		OPT_PTR(layer_pattern_shift_distance);
+		OPT_PTR(layer_pattern_fill_angle);
+		OPT_PTR(layer_pattern_angle_relative);
+		OPT_PTR(layer_pattern_overshoot);
+		OPT_PTR(layer_pattern_extrusion_width);
+		OPT_PTR(layer_pattern_extrusion_multipier);
+		OPT_PTR(layer_pattern_infill_first);
+		OPT_PTR(layer_pattern_line_gap);
     }
 };
 

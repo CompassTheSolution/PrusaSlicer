@@ -877,7 +877,7 @@ namespace SupportMaterialInternal {
             // Surface supporting this layer, expanded by 0.5 * nozzle_diameter, as we consider this kind of overhang to be sufficiently supported.
             Polygons lower_grown_slices = offset(lower_layer_polygons, 
                 //FIXME to mimic the decision in the perimeter generator, we should use half the external perimeter width.
-                0.5f * float(scale_(print_config.nozzle_diameter.get_at(layerm->region()->config().perimeter_extruder-1))),
+                0.5f * float(scale_(print_config.nozzle_diameter.get_at(layerm->config().perimeter_extruder-1))),
                 SUPPORT_SURFACES_OFFSET_PARAMETERS);
             // Collect perimeters of this layer.
             //FIXME split_at_first_point() could split a bridge mid-way
@@ -2111,16 +2111,16 @@ void PrintObjectSupportMaterial::trim_support_layers_by_object(
                     for (; i < object.layers().size(); ++ i) {
                         const Layer &object_layer = *object.layers()[i];
                         bool some_region_overlaps = false;
-                        for (LayerRegion *region : object_layer.regions()) {
-                            coordf_t bridging_height = region->region()->bridging_height_avg(*this->m_print_config);
+                        for (LayerRegion *layerm : object_layer.regions()) {
+                            coordf_t bridging_height = layerm->region()->bridging_height_avg(*this->m_print_config);
                             if (object_layer.print_z - bridging_height > support_layer.print_z + gap_extra_above - EPSILON)
                                 break;
                             some_region_overlaps = true;
                             polygons_append(polygons_trimming, 
-                                offset(to_expolygons(region->fill_surfaces.filter_by_type(stBottomBridge)), 
+                                offset(to_expolygons(layerm->fill_surfaces.filter_by_type(stBottomBridge)), 
                                        gap_xy_scaled, SUPPORT_SURFACES_OFFSET_PARAMETERS));
-                            if (region->region()->config().overhangs.value)
-                                SupportMaterialInternal::collect_bridging_perimeter_areas(region->perimeters, gap_xy_scaled, polygons_trimming);
+                            if (layerm->config().overhangs.value)
+                                SupportMaterialInternal::collect_bridging_perimeter_areas(layerm->perimeters, gap_xy_scaled, polygons_trimming);
                         }
                         if (! some_region_overlaps)
                             break;

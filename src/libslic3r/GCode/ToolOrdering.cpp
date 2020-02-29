@@ -39,33 +39,33 @@ bool LayerTools::is_extruder_order(unsigned int a, unsigned int b) const
 // Return a zero based extruder from the region, or extruder_override if overriden.
 unsigned int LayerTools::perimeter_extruder(const PrintRegion &region) const
 {
-	assert(region.config().perimeter_extruder.value > 0);
-	return ((this->extruder_override == 0) ? region.config().perimeter_extruder.value : this->extruder_override) - 1;
+	assert(region.prconfig().perimeter_extruder.value > 0);
+	return ((this->extruder_override == 0) ? region.prconfig().perimeter_extruder.value : this->extruder_override) - 1;
 }
 
 unsigned int LayerTools::infill_extruder(const PrintRegion &region) const
 {
-	assert(region.config().infill_extruder.value > 0);
-	return ((this->extruder_override == 0) ? region.config().infill_extruder.value : this->extruder_override) - 1;
+	assert(region.prconfig().infill_extruder.value > 0);
+	return ((this->extruder_override == 0) ? region.prconfig().infill_extruder.value : this->extruder_override) - 1;
 }
 
 unsigned int LayerTools::solid_infill_extruder(const PrintRegion &region) const
 {
-	assert(region.config().solid_infill_extruder.value > 0);
-	return ((this->extruder_override == 0) ? region.config().solid_infill_extruder.value : this->extruder_override) - 1;
+	assert(region.prconfig().solid_infill_extruder.value > 0);
+	return ((this->extruder_override == 0) ? region.prconfig().solid_infill_extruder.value : this->extruder_override) - 1;
 }
 
 // Returns a zero based extruder this eec should be printed with, according to PrintRegion config or extruder_override if overriden.
 unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, const PrintRegion &region) const
 {
-	assert(region.config().perimeter_extruder.value > 0);
-	assert(region.config().infill_extruder.value > 0);
-	assert(region.config().solid_infill_extruder.value > 0);
+	assert(region.prconfig().perimeter_extruder.value > 0);
+	assert(region.prconfig().infill_extruder.value > 0);
+	assert(region.prconfig().solid_infill_extruder.value > 0);
 	// 1 based extruder ID.
 	unsigned int extruder = ((this->extruder_override == 0) ?
 	    (is_infill(extrusions.role()) ?
-	    	(is_solid_infill(extrusions.entities.front()->role()) ? region.config().solid_infill_extruder : region.config().infill_extruder) :
-			region.config().perimeter_extruder.value) :
+	    	(is_solid_infill(extrusions.entities.front()->role()) ? region.prconfig().solid_infill_extruder : region.prconfig().infill_extruder) :
+			region.prconfig().perimeter_extruder.value) :
 		this->extruder_override);
 	return (extruder == 0) ? 0 : extruder - 1;
 }
@@ -218,7 +218,7 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
                 }
 
                 if (something_nonoverriddable)
-               		layer_tools.extruders.emplace_back((extruder_override == 0) ? region.config().perimeter_extruder.value : extruder_override);
+               		layer_tools.extruders.emplace_back((extruder_override == 0) ? region.prconfig().perimeter_extruder.value : extruder_override);
 
                 layer_tools.has_object = true;
             }
@@ -244,9 +244,9 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
             if (something_nonoverriddable || !m_print_config_ptr) {
             	if (extruder_override == 0) {
 	                if (has_solid_infill)
-	                    layer_tools.extruders.emplace_back(region.config().solid_infill_extruder);
+	                    layer_tools.extruders.emplace_back(region.prconfig().solid_infill_extruder);
 	                if (has_infill)
-	                    layer_tools.extruders.emplace_back(region.config().infill_extruder);
+	                    layer_tools.extruders.emplace_back(region.prconfig().infill_extruder);
             	} else if (has_solid_infill || has_infill)
             		layer_tools.extruders.emplace_back(extruder_override);
             }
@@ -562,7 +562,7 @@ bool WipingExtrusions::is_overriddable(const ExtrusionEntityCollection& eec, con
     if (object.config().wipe_into_objects)
         return true;
 
-    if (!region.config().wipe_into_infill || eec.role() != erInternalInfill)
+    if (!region.prconfig().wipe_into_infill || eec.role() != erInternalInfill)
         return false;
 
     return true;
@@ -610,10 +610,10 @@ float WipingExtrusions::mark_wiping_extrusions(const Print& print, unsigned int 
             for (size_t region_id = 0; region_id < object->region_volumes.size(); ++ region_id) {
                 const auto& region = *object->print()->regions()[region_id];
 
-                if (!region.config().wipe_into_infill && !object->config().wipe_into_objects)
+                if (!region.prconfig().wipe_into_infill && !object->config().wipe_into_objects)
                     continue;
 
-                bool wipe_into_infill_only = ! object->config().wipe_into_objects && region.config().wipe_into_infill;
+                bool wipe_into_infill_only = ! object->config().wipe_into_objects && region.prconfig().wipe_into_infill;
                 if (print.config().infill_first != perimeters_done || wipe_into_infill_only) {
                     for (const ExtrusionEntity* ee : this_layer->regions()[region_id]->fills.entities) {                      // iterate through all infill Collections
                         auto* fill = dynamic_cast<const ExtrusionEntityCollection*>(ee);
@@ -683,7 +683,7 @@ void WipingExtrusions::ensure_perimeters_infills_order(const Print& print)
             for (size_t region_id = 0; region_id < object->region_volumes.size(); ++ region_id) {
                 const auto& region = *object->print()->regions()[region_id];
 
-                if (!region.config().wipe_into_infill && !object->config().wipe_into_objects)
+                if (!region.prconfig().wipe_into_infill && !object->config().wipe_into_objects)
                     continue;
 
                 for (const ExtrusionEntity* ee : this_layer->regions()[region_id]->fills.entities) {                      // iterate through all infill Collections

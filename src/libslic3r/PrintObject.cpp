@@ -168,7 +168,7 @@ void PrintObject::make_perimeters()
     // hollow objects
     for (size_t region_id = 0; region_id < this->region_volumes.size(); ++ region_id) {
         const PrintRegion &region = *m_print->regions()[region_id];
-        if (! region.config().extra_perimeters || region.config().perimeters == 0 || region.config().fill_density == 0 || this->layer_count() < 2)
+        if (! region.prconfig().extra_perimeters || region.prconfig().perimeters == 0 || region.prconfig().fill_density == 0 || this->layer_count() < 2)
             continue;
 
         BOOST_LOG_TRIVIAL(debug) << "Generating extra perimeters for region " << region_id << " in parallel - start";
@@ -192,7 +192,7 @@ void PrintObject::make_perimeters()
                         for (;;) {
                             // compute the total thickness of perimeters
                             const coord_t perimeters_thickness = ext_perimeter_width/2 + ext_perimeter_spacing/2
-                                + (region.config().perimeters-1 + slice.extra_perimeters) * perimeter_spacing;
+                                + (region.prconfig().perimeters-1 + slice.extra_perimeters) * perimeter_spacing;
                             // define a critical area where we don't want the upper slice to fall into
                             // (it should either lay over our perimeters or outside this area)
                             const coord_t critical_area_depth = coord_t(perimeter_spacing * 1.5);
@@ -831,7 +831,7 @@ void PrintObject::process_external_surfaces()
     // over voids, which are supported by the layer below.
     bool 				  has_voids = false;
 	for (size_t region_id = 0; region_id < this->region_volumes.size(); ++ region_id)
-		if (! this->region_volumes.empty() && this->print()->regions()[region_id]->config().fill_density == 0) {
+		if (! this->region_volumes.empty() && this->print()->regions()[region_id]->prconfig().fill_density == 0) {
 			has_voids = true;
 			break;
 		}
@@ -867,7 +867,7 @@ void PrintObject::process_external_surfaces()
 		                m_print->throw_if_canceled();
 		                Polygons voids;
 		                for (const LayerRegion *layerm : m_layers[layer_idx]->regions()) {
-		                	if (layerm->region()->config().fill_density.value == 0.)
+		                	if (layerm->config().fill_density.value == 0.)
 		                		for (const Surface &surface : layerm->fill_surfaces.surfaces)
 		                			// Shrink the holes, let the layer above expand slightly inside the unsupported areas.
 		                			polygons_append(voids, offset(surface.expolygon, unsupported_width));
@@ -921,8 +921,8 @@ void PrintObject::discover_vertical_shells()
         bool has_extra_layers = false;
         for (size_t idx_region = 0; idx_region < this->region_volumes.size(); ++ idx_region) {
             const PrintRegion &region = *m_print->get_region(idx_region);
-            if (region.config().ensure_vertical_shell_thickness.value && 
-                (region.config().top_solid_layers.value > 1 || region.config().bottom_solid_layers.value > 1)) {
+            if (region.prconfig().ensure_vertical_shell_thickness.value && 
+                (region.prconfig().top_solid_layers.value > 1 || region.prconfig().bottom_solid_layers.value > 1)) {
                 has_extra_layers = true;
             }
         }
@@ -962,7 +962,7 @@ void PrintObject::discover_vertical_shells()
                         unsigned int perimeters = 0;
                         for (Surface &s : layerm.slices.surfaces)
                             perimeters = std::max<unsigned int>(perimeters, s.extra_perimeters);
-                        perimeters += layerm.region()->config().perimeters.value;
+                        perimeters += layerm.config().perimeters.value;
                         // Then calculate the infill offset.
                         if (perimeters > 0) {
                             Flow extflow = layerm.flow(frExternalPerimeter);
@@ -1001,11 +1001,11 @@ void PrintObject::discover_vertical_shells()
         PROFILE_BLOCK(discover_vertical_shells_region);
 
         const PrintRegion &region = *m_print->get_region(idx_region);
-        if (! region.config().ensure_vertical_shell_thickness.value)
+        if (! region.prconfig().ensure_vertical_shell_thickness.value)
             // This region will be handled by discover_horizontal_shells().
             continue;
-        int n_extra_top_layers    = std::max(0, region.config().top_solid_layers.value - 1);
-        int n_extra_bottom_layers = std::max(0, region.config().bottom_solid_layers.value - 1);
+        int n_extra_top_layers    = std::max(0, region.prconfig().top_solid_layers.value - 1);
+        int n_extra_bottom_layers = std::max(0, region.prconfig().bottom_solid_layers.value - 1);
         if (n_extra_top_layers + n_extra_bottom_layers == 0)
             // Zero or 1 layer, there is no additional vertical wall thickness enforced.
             continue;
@@ -1292,7 +1292,7 @@ void PrintObject::bridge_over_infill()
         const PrintRegion &region = *m_print->regions()[region_id];
         
         // skip bridging in case there are no voids
-        if (region.config().fill_density.value == 100) continue;
+        if (region.prconfig().fill_density.value == 100) continue;
         
         // get bridge flow
         Flow bridge_flow = region.flow(
@@ -1565,7 +1565,7 @@ void PrintObject::_slice(const std::vector<coordf_t> &layer_height_profile)
             }
             // Make sure all layers contain layer region objects for all regions.
             for (size_t region_id = 0; region_id < this->region_volumes.size(); ++ region_id)
-                layer->add_region(this->print()->regions()[region_id]);
+                layer->add_region(this->print()->regions()[region_id], slice_zs);
             prev = layer;
         }
     }
@@ -1773,7 +1773,7 @@ end:
 	                Layer *layer = m_layers[layer_id];
 	                // Apply size compensation and perform clipping of multi-part objects.
 	                float elfoot = (layer_id == 0) ? elephant_foot_compensation_scaled : 0.f;
-	                if (layer->m_regions.size() == 1) {
+	                if (layer->m_regions.size() == 1 && !upscaled && !clipped) {
 	                	assert(! upscaled);
 	                	assert(! clipped);
 	                    // Optimized version for a single region layer.
@@ -2197,7 +2197,7 @@ void PrintObject::clip_fill_surfaces()
 {
     if (! m_config.infill_only_where_needed.value ||
         ! std::any_of(this->print()->regions().begin(), this->print()->regions().end(), 
-            [](const PrintRegion *region) { return region->config().fill_density > 0; }))
+            [](const PrintRegion *region) { return region->prconfig().fill_density > 0; }))
         return;
 
     // We only want infill under ceilings; this is almost like an
@@ -2250,7 +2250,7 @@ void PrintObject::clip_fill_surfaces()
         upper_internal = intersection(overhangs, lower_layer_internal_surfaces);
         // Apply new internal infill to regions.
         for (LayerRegion *layerm : lower_layer->m_regions) {
-            if (layerm->region()->config().fill_density.value == 0)
+            if (layerm->config().fill_density.value == 0)
                 continue;
             SurfaceType internal_surface_types[] = { stInternal, stInternalVoid };
             Polygons internal;
@@ -2279,7 +2279,7 @@ void PrintObject::discover_horizontal_shells()
         for (size_t i = 0; i < m_layers.size(); ++ i) {
             m_print->throw_if_canceled();
             LayerRegion             *layerm = m_layers[i]->regions()[region_id];
-            const PrintRegionConfig &region_config = layerm->region()->config();
+            const PrintRegionConfig &region_config = layerm->config();
             if (region_config.solid_infill_every_layers.value > 0 && region_config.fill_density.value > 0 &&
                 (i % region_config.solid_infill_every_layers) == 0) {
                 // Insert a solid internal layer. Mark stInternal surfaces as stInternalSolid or stInternalBridge.
@@ -2467,14 +2467,14 @@ void PrintObject::combine_infill()
     // Work on each region separately.
     for (size_t region_id = 0; region_id < this->region_volumes.size(); ++ region_id) {
         const PrintRegion *region = this->print()->regions()[region_id];
-        const size_t every = region->config().infill_every_layers.value;
-        if (every < 2 || region->config().fill_density == 0.)
+        const size_t every = region->prconfig().infill_every_layers.value;
+        if (every < 2 || region->prconfig().fill_density == 0.)
             continue;
         // Limit the number of combined layers to the maximum height allowed by this regions' nozzle.
         //FIXME limit the layer height to max_layer_height
         double nozzle_diameter = std::min(
-            this->print()->config().nozzle_diameter.get_at(region->config().infill_extruder.value - 1),
-            this->print()->config().nozzle_diameter.get_at(region->config().solid_infill_extruder.value - 1));
+            this->print()->config().nozzle_diameter.get_at(region->prconfig().infill_extruder.value - 1),
+            this->print()->config().nozzle_diameter.get_at(region->prconfig().solid_infill_extruder.value - 1));
         // define the combinations
         std::vector<size_t> combine(m_layers.size(), 0);
         {
@@ -2541,10 +2541,10 @@ void PrintObject::combine_infill()
                 0.5f * layerms.back()->flow(frPerimeter).scaled_width() +
              // Because fill areas for rectilinear and honeycomb are grown 
              // later to overlap perimeters, we need to counteract that too.
-                ((region->config().fill_pattern == ipRectilinear   ||
-                  region->config().fill_pattern == ipGrid          ||
-                  region->config().fill_pattern == ipLine          ||
-                  region->config().fill_pattern == ipHoneycomb) ? 1.5f : 0.5f) * 
+                ((region->prconfig().fill_pattern == ipRectilinear   ||
+                  region->prconfig().fill_pattern == ipGrid          ||
+                  region->prconfig().fill_pattern == ipLine          ||
+                  region->prconfig().fill_pattern == ipHoneycomb) ? 1.5f : 0.5f) * 
                     layerms.back()->flow(frSolidInfill).scaled_width();
             for (ExPolygon &expoly : intersection)
                 polygons_append(intersection_with_clearance, offset(expoly, clearance_offset));

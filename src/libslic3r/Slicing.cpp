@@ -574,6 +574,7 @@ void adjust_layer_height_profile(
 	assert(layer_height_profile.size() % 2 == 0);
 	assert(layer_height_profile[0] == 0.);
     assert(std::abs(layer_height_profile[layer_height_profile.size() - 2] - slicing_params.object_print_z_height()) < EPSILON);
+#ifdef KNOCK_THIS_OUT
 #ifdef _DEBUG
 	for (size_t i = 2; i < layer_height_profile.size(); i += 2)
 		assert(layer_height_profile[i - 2] <= layer_height_profile[i]);
@@ -582,6 +583,7 @@ void adjust_layer_height_profile(
 		assert(layer_height_profile[i] < slicing_params.max_layer_height + EPSILON);
 	}
 #endif /* _DEBUG */
+#endif
 }
 
 // Produce object layers as pairs of low / high layer boundaries, stored into a linear vector.

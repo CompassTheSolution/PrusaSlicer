@@ -15,6 +15,7 @@
 #include "clonable_ptr.hpp"
 #include "Point.hpp"
 
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/format.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -96,6 +97,8 @@ enum ConfigOptionType {
     coBools         = coBool + coVectorType,
     // a generic enum
     coEnum          = 9,
+    // vector of generic enums
+    coEnums         = coEnum + coVectorType,
 };
 
 enum ConfigOptionMode {
@@ -189,7 +192,7 @@ private:
 	template<class Archive> void serialize(Archive & ar) { ar(this->value); }
 };
 
-// Value of a vector valued option (bools, ints, floats, strings, points)
+// Value of a vector valued option (bools, ints, floats, strings, points, enums)
 class ConfigOptionVectorBase : public ConfigOption {
 public:
     // Currently used only to initialize the PlaceholderParser.
@@ -225,7 +228,7 @@ protected:
     ConfigOptionType scalar_type() const { return static_cast<ConfigOptionType>(this->type() - coVectorType); }
 };
 
-// Value of a vector valued option (bools, ints, floats, strings, points), template
+// Value of a vector valued option (bools, ints, floats, strings, points, enums), template
 template <class T>
 class ConfigOptionVector : public ConfigOptionVectorBase
 {
@@ -1231,13 +1234,129 @@ public:
     static bool from_string(const std::string &str, T &value)
     {
         const t_config_enum_values &enum_keys_map = ConfigOptionEnum<T>::get_enum_values();
-        auto it = enum_keys_map.find(str);
+		auto it = enum_keys_map.find(str);
         if (it == enum_keys_map.end())
             return false;
         value = static_cast<T>(it->second);
         return true;
     }
 };
+
+
+template <class T>
+class ConfigOptionEnums : public ConfigOptionVector<T>
+{
+public:
+    ConfigOptionEnums() : ConfigOptionVector<T>() {}
+    explicit ConfigOptionEnums(size_t n, const T &value) : ConfigOptionVector<T>(n, value) {}
+    explicit ConfigOptionEnums(std::initializer_list<T> il) : ConfigOptionVector<T>(std::move(il)) {}
+    explicit ConfigOptionEnums(const std::vector<T> &values) : ConfigOptionVector<T>(values) {}
+
+    static ConfigOptionType static_type() { return coEnums; }
+    ConfigOptionType        type()  const override { return static_type(); }
+    ConfigOption*           clone() const override { return new ConfigOptionEnums(*this); }
+    ConfigOptionEnums&     operator=(const ConfigOption *opt) { this->set(opt); return *this; }
+    bool                    operator==(const ConfigOptionEnums &rhs) const { return this->values == rhs.values; }
+    bool					is_nil(size_t) const override { return false; }
+
+    std::string serialize() const override
+    {
+        const t_config_enum_names& names = ConfigOptionEnum<T>::get_enum_names();
+        std::ostringstream ss;
+		for (const T& v : this->values) {
+			if (&v != &this->values.front())
+				ss << ",";
+	        assert(static_cast<int>(v) < int(names.size()));
+		    ss << names[static_cast<int>(v)];
+        }
+        return ss.str();
+    }
+    
+	std::vector<std::string> vserialize() const override
+    {
+		const t_config_enum_names& names = ConfigOptionEnum<T>::get_enum_names();
+		std::vector<std::string> vv;
+		for (const T& v : this->values) {
+			std::ostringstream ss;
+	        assert(static_cast<int>(v) < int(names.size()));
+		    ss << names[static_cast<int>(v)];
+            vv.push_back(ss.str());
+        }
+        return vv;
+    }
+
+    bool deserialize(const std::string &str, bool append = false) override
+    {
+		if (! append)
+            this->values.clear();
+        std::istringstream is(str);
+        std::string enum_str;
+        while (std::getline(is, enum_str, ',')) {
+			T value;
+			boost::trim(enum_str);
+			boost::to_lower(enum_str);
+			if (!from_string(enum_str, value))
+				return false;
+            this->values.push_back(value);
+        }
+        return true;
+    }
+
+    static bool has(T value) 
+    {
+        for (const std::pair<std::string, int> &kvp : ConfigOptionEnum<T>::get_enum_values())
+            if (kvp.second == value)
+                return true;
+        return false;
+    }
+
+    // Map from an enum name to an enum integer value.
+    static const t_config_enum_names& get_enum_names() 
+    {
+        static t_config_enum_names names;
+        if (names.empty()) {
+            // Initialize the map.
+            const t_config_enum_values &enum_keys_map = ConfigOptionEnum<T>::get_enum_values();
+            int cnt = 0;
+            for (const std::pair<std::string, int> &kvp : enum_keys_map)
+                cnt = std::max(cnt, kvp.second);
+            cnt += 1;
+            names.assign(cnt, "");
+            for (const std::pair<std::string, int> &kvp : enum_keys_map)
+                names[kvp.second] = kvp.first;
+        }
+        return names;
+    }
+    // Map from an enum name to an enum integer value.
+    static const t_config_enum_values& get_enum_values();
+
+    static bool from_string(const std::string &str, T &value)
+    {
+        const t_config_enum_values &enum_keys_map = ConfigOptionEnum<T>::get_enum_values();
+        auto it = enum_keys_map.find(str);
+        if (it == enum_keys_map.end())
+            return false;
+        value = static_cast<T>(it->second);
+        return true;
+    }
+
+
+private:
+	friend class cereal::access;
+	template<class Archive> void save(Archive& archive) const {
+		size_t cnt = this->values.size();
+		archive(cnt);
+		archive.saveBinary((const char*)this->values.data(), sizeof(T) * cnt);
+	}
+	template<class Archive> void load(Archive& archive) {
+		size_t cnt;
+		archive(cnt);
+		this->values.assign(cnt, T());
+		archive.loadBinary((char*)this->values.data(), sizeof(T) * cnt);
+	}
+};
+
+
 
 // Generic enum configuration value.
 // We use this one in DynamicConfig objects when creating a config value object for ConfigOptionType == coEnum.
@@ -1294,6 +1413,86 @@ private:
 	template<class Archive> void serialize(Archive& ar) { ar(cereal::base_class<ConfigOptionInt>(this)); }
 };
 
+
+class ConfigOptionEnumsGeneric : public ConfigOptionInts
+{
+public:
+    ConfigOptionEnumsGeneric(const t_config_enum_values* keys_map = nullptr) : keys_map(keys_map), ConfigOptionInts() {}
+    explicit ConfigOptionEnumsGeneric(size_t n, int value) : ConfigOptionInts(n, value) {}
+    explicit ConfigOptionEnumsGeneric(std::initializer_list<int> il) : ConfigOptionInts(std::move(il)) {}
+
+	const t_config_enum_values* keys_map;
+	
+	static ConfigOptionType static_type() { return coEnums; }
+    ConfigOptionType        type()  const override { return static_type(); }
+    ConfigOption*           clone() const override { return new ConfigOptionEnumsGeneric(*this); }
+    ConfigOptionEnumsGeneric&     operator=(const ConfigOption *opt) { this->set(opt); return *this; }
+    bool                    operator==(const ConfigOptionEnumsGeneric &rhs) const { return this->values == rhs.values; }
+    bool					is_nil(size_t) const override { return false; }
+
+    std::string serialize() const override
+    {
+        std::ostringstream ss;
+        for (const int &v : this->values) {
+            if (&v != &this->values.front())
+            	ss << ",";
+
+			for (const auto &kvp : *this->keys_map)
+				if (kvp.second == v) 
+					ss << kvp.first;
+        }
+        return ss.str();
+    }
+    
+    std::vector<std::string> vserialize() const override
+    {
+        std::vector<std::string> vv;
+        vv.reserve(this->values.size());
+        for (const int v : this->values) {
+            std::ostringstream ss;
+			for (const auto &kvp : *this->keys_map)
+				if (kvp.second == v) 
+					ss << kvp.first;
+            vv.push_back(ss.str());
+        }
+        return vv;
+    }
+    
+    bool deserialize(const std::string &str, bool append = false) override
+    {
+        if (! append)
+            this->values.clear();
+        std::istringstream is(str);
+        std::string item_str;
+        while (std::getline(is, item_str, ',')) {
+        	boost::trim(item_str);
+			auto it = this->keys_map->find(item_str);
+			if (it != this->keys_map->end())
+				return false;
+			this->values.push_back(it->second);
+        }
+        return true;
+    }
+
+private:
+	friend class cereal::access;
+	template<class Archive> void save(Archive& archive) const {
+		size_t cnt = this->values.size();
+		archive(cnt);
+		archive.saveBinary((const char*)this->values.data(), sizeof(int) * cnt);
+	}
+	template<class Archive> void load(Archive& archive) {
+		size_t cnt;
+		archive(cnt);
+		this->values.assign(cnt, int());
+		archive.loadBinary((char*)this->values.data(), sizeof(int) * cnt);
+	}
+};
+
+
+
+
+
 // Definition of a configuration value for the purpose of GUI presentation, editing, value mapping and config file handling.
 class ConfigOptionDef
 {
@@ -1340,6 +1539,7 @@ public:
 		    case coBool:            { auto opt = new ConfigOptionBool(); 			archive(*opt); return opt; }
 		    case coBools:           { auto opt = new ConfigOptionBools(); 			archive(*opt); return opt; }
 		    case coEnum:            { auto opt = new ConfigOptionEnumGeneric(this->enum_keys_map); archive(*opt); return opt; }
+		    case coEnums:           { auto opt = new ConfigOptionEnumsGeneric(this->enum_keys_map); archive(*opt); return opt; }
 		    default:                throw std::runtime_error(std::string("ConfigOptionDef::load_option_from_archive(): Unknown option type for option ") + this->opt_key);
 		    }
 		}
