@@ -5761,7 +5761,7 @@ void GLCanvas3D::_load_print_object_toolpaths(const PrintObject& print_object, c
                 {
                     if (layerm->slices.surfaces.empty())
                         continue;
-                    const PrintRegionConfig& cfg = layerm->region()->config();
+                    const PrintRegionConfig& cfg = layerm->config();
                     if (cfg.perimeter_extruder.value    == m_selected_extruder ||
                         cfg.infill_extruder.value       == m_selected_extruder ||
                         cfg.solid_infill_extruder.value == m_selected_extruder ) {
@@ -5784,7 +5784,7 @@ void GLCanvas3D::_load_print_object_toolpaths(const PrintObject& print_object, c
                 for (const LayerRegion *layerm : layer->regions()) {
                     if (is_selected_separate_extruder)
                     {
-                        const PrintRegionConfig& cfg = layerm->region()->config();
+                        const PrintRegionConfig& cfg = layerm->config();
                         if (cfg.perimeter_extruder.value    != m_selected_extruder ||
                             cfg.infill_extruder.value       != m_selected_extruder ||
                             cfg.solid_infill_extruder.value != m_selected_extruder)
@@ -5792,7 +5792,7 @@ void GLCanvas3D::_load_print_object_toolpaths(const PrintObject& print_object, c
                     }
                     if (ctxt.has_perimeters)
                         _3DScene::extrusionentity_to_verts(layerm->perimeters, float(layer->print_z), copy,
-                        	volume(idx_layer, layerm->region()->config().perimeter_extruder.value, 0));
+                        	volume(idx_layer, layerm->config().perimeter_extruder.value, 0));
                     if (ctxt.has_infill) {
                         for (const ExtrusionEntity *ee : layerm->fills.entities) {
                             // fill represents infill extrusions of a single island.
@@ -5801,8 +5801,8 @@ void GLCanvas3D::_load_print_object_toolpaths(const PrintObject& print_object, c
                                 _3DScene::extrusionentity_to_verts(*fill, float(layer->print_z), copy,
 	                                volume(idx_layer, 
 		                                is_solid_infill(fill->entities.front()->role()) ?
-			                                layerm->region()->config().solid_infill_extruder :
-			                                layerm->region()->config().infill_extruder,
+			                                layerm->config().solid_infill_extruder :
+			                                layerm->config().infill_extruder,
 		                                1));
                         }
                     }

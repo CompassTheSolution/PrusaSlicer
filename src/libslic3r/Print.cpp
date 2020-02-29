@@ -1034,7 +1034,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                         this_region_config = PrintObject::region_config_from_model_volume(m_default_region_config, layer_range_config, volume, num_extruders);
 						for (size_t i = 0; i < region_id; ++ i) {
 							const PrintRegion &region_other = *m_regions[i];
-							if (region_other.m_refcnt != 0 && region_other.config().equals(this_region_config))
+							if (region_other.m_refcnt != 0 && region_other.prconfig().equals(this_region_config))
 								// Regions were merged. Reset this print_object.
 								goto print_object_end;
 						}
@@ -1055,7 +1055,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             print_object->region_volumes.clear();
         }
         if (this_region_config_set) {
-            t_config_option_keys diff = region.config().diff(this_region_config);
+            t_config_option_keys diff = region.prconfig().diff(this_region_config);
             if (! diff.empty()) {
                 region.config_apply_only(this_region_config, diff, false);
                 for (PrintObject *print_object : m_objects)
@@ -1101,7 +1101,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     						if (m_regions[i]->m_refcnt == 0) {
                                 if (idx_empty_slot == -1)
                                     idx_empty_slot = i;
-                            } else if (config.equals(m_regions[i]->config())) {
+                            } else if (config.equals(m_regions[i]->prconfig())) {
                                 region_id = i;
                                 break;
                             }
@@ -1434,7 +1434,7 @@ std::string Print::validate() const
             	return err_msg;
             for (const char *opt_key : { "perimeter_extrusion_width", "external_perimeter_extrusion_width", "infill_extrusion_width", "solid_infill_extrusion_width", "top_infill_extrusion_width" })
 				for (size_t i = 0; i < object->region_volumes.size(); ++ i)
-            		if (! object->region_volumes[i].empty() && ! validate_extrusion_width(this->get_region(i)->config(), opt_key, layer_height, err_msg))
+            		if (! object->region_volumes[i].empty() && ! validate_extrusion_width(this->get_region(i)->prconfig(), opt_key, layer_height, err_msg))
 		            	return err_msg;
         }
     }
@@ -1510,7 +1510,7 @@ Flow Print::brim_flow() const
 {
     ConfigOptionFloatOrPercent width = m_config.first_layer_extrusion_width;
     if (width.value == 0) 
-        width = m_regions.front()->config().perimeter_extrusion_width;
+        width = m_regions.front()->prconfig().perimeter_extrusion_width;
     if (width.value == 0) 
         width = m_objects.front()->config().extrusion_width;
     
@@ -1522,7 +1522,7 @@ Flow Print::brim_flow() const
     return Flow::new_from_config_width(
         frPerimeter,
 		width,
-        (float)m_config.nozzle_diameter.get_at(m_regions.front()->config().perimeter_extruder-1),
+        (float)m_config.nozzle_diameter.get_at(m_regions.front()->prconfig().perimeter_extruder-1),
 		(float)this->skirt_first_layer_height(),
         0
     );
@@ -1532,7 +1532,7 @@ Flow Print::skirt_flow() const
 {
     ConfigOptionFloatOrPercent width = m_config.first_layer_extrusion_width;
     if (width.value == 0) 
-        width = m_regions.front()->config().perimeter_extrusion_width;
+        width = m_regions.front()->prconfig().perimeter_extrusion_width;
     if (width.value == 0)
         width = m_objects.front()->config().extrusion_width;
     
@@ -1578,7 +1578,7 @@ void Print::auto_assign_extruders(ModelObject* model_object) const
 // Slicing process, running at a background thread.
 void Print::process()
 {
-    BOOST_LOG_TRIVIAL(info) << "Staring the slicing process." << log_memory_info();
+    BOOST_LOG_TRIVIAL(info) << "Starting the slicing process." << log_memory_info();
     for (PrintObject *obj : m_objects)
         obj->make_perimeters();
     this->set_status(70, L("Infilling layers"));

@@ -55,7 +55,7 @@ class PrintRegion
 // Methods NOT modifying the PrintRegion's state:
 public:
     const Print*                print() const { return m_print; }
-    const PrintRegionConfig&    config() const { return m_config; }
+    const PrintRegionConfig&    prconfig() const { return m_config; }
 	// 1-based extruder identifier for this region and role.
 	unsigned int 				extruder(FlowRole role) const;
     Flow                        flow(FlowRole role, double layer_height, bool bridge, bool first_layer, double width, const PrintObject &object) const;

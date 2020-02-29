@@ -15,6 +15,48 @@
 
 namespace Slic3r {
 
+LayerRegion::LayerRegion(Layer* layer, PrintRegion* region, std::vector<float> &slice_zs)
+{
+	m_layer = layer; m_region = region;
+	const PrintRegionConfig& useConfig = m_region->prconfig();
+	if (useConfig.layer_pattern_enabled.value
+		&& (useConfig.layer_pattern_maximum_z.value > useConfig.layer_pattern_minimum_z.value
+			|| useConfig.layer_pattern_maximum_z.value == 0))
+	{
+		int originalPerimeters = m_region->prconfig().perimeters.value;
+		float myZ = layer->slice_z;
+		float startZ = useConfig.layer_pattern_minimum_z.value;
+		float endZ = useConfig.layer_pattern_maximum_z.value;
+		if (myZ >= startZ && (myZ <= endZ || endZ == 0))
+		{
+			std::vector<float>::iterator itStart = std::find_if(slice_zs.begin(), slice_zs.end(), [startZ](const float& val) { return val >= startZ; });
+			std::vector<float>::iterator itThis = std::find_if(slice_zs.begin(), slice_zs.end(), [myZ](const float& val) { return val >= myZ; });
+			int startIndex = distance(slice_zs.begin(), itStart);
+			int thisIndex = distance(slice_zs.begin(), itThis);
+			int diffIndex = thisIndex - startIndex;
+			int sliceIndex = itThis - itStart;
+			int index = diffIndex % useConfig.layer_pattern_count.value;
+
+			usePatternConfig = true;
+			patternConfig = m_region->prconfig();
+
+			patternConfig.perimeters.set(new ConfigOptionInt(patternConfig.layer_pattern_perimeters.values[index]));
+			patternConfig.fill_pattern.set(new ConfigOptionEnum<InfillPattern>(patternConfig.layer_pattern_fill_pattern.values[index]));
+			patternConfig.fill_density.set(new ConfigOptionPercent(patternConfig.layer_pattern_fill_density.values[index]));
+			patternConfig.fill_angle.set(new ConfigOptionFloat(patternConfig.layer_pattern_fill_angle.values[index]));
+		}
+	}
+}
+
+const PrintRegionConfig& LayerRegion::config() const
+{
+	if (usePatternConfig)
+	{
+		return patternConfig;
+	}
+	return m_region->prconfig();
+}
+	
 Flow LayerRegion::flow(FlowRole role, bool bridge, double width) const
 {
     return m_region->flow(
@@ -60,7 +102,7 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, SurfaceCollec
         &slices,
         this->layer()->height,
         this->flow(frPerimeter),
-        &this->region()->config(),
+        &this->config(),
         &this->layer()->object()->config(),
         &this->layer()->object()->print()->config(),
         
@@ -88,7 +130,7 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, SurfaceCollec
 
 void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Polygons *lower_layer_covered)
 {
-    const bool      has_infill = this->region()->config().fill_density.value > 0.;
+    const bool      has_infill = this->config().fill_density.value > 0.;
     const float		margin 	   = float(scale_(EXTERNAL_INFILL_MARGIN));
 
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
@@ -266,7 +308,7 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
                 #ifdef SLIC3R_DEBUG
                 printf("Processing bridge at layer " PRINTF_ZU ":\n", this->layer()->id());
                 #endif
-				double custom_angle = Geometry::deg2rad(this->region()->config().bridge_angle.value);
+				double custom_angle = Geometry::deg2rad(this->config().bridge_angle.value);
 				if (bd.detect_angle(custom_angle)) {
                     bridges[idx_last].bridge_angle = bd.angle;
                     if (this->layer()->object()->config().support_material) {
@@ -365,21 +407,21 @@ void LayerRegion::prepare_fill_surfaces()
     bool spiral_vase = this->layer()->object()->print()->config().spiral_vase;
 
     // if no solid layers are requested, turn top/bottom surfaces to internal
-    if (! spiral_vase && this->region()->config().top_solid_layers == 0) {
+    if (! spiral_vase && this->config().top_solid_layers == 0) {
         for (Surface &surface : this->fill_surfaces.surfaces)
             if (surface.is_top())
                 surface.surface_type = this->layer()->object()->config().infill_only_where_needed ? stInternalVoid : stInternal;
     }
-    if (this->region()->config().bottom_solid_layers == 0) {
+    if (this->config().bottom_solid_layers == 0) {
         for (Surface &surface : this->fill_surfaces.surfaces)
             if (surface.is_bottom()) // (surface.surface_type == stBottom)
                 surface.surface_type = stInternal;
     }
 
     // turn too small internal regions into solid regions according to the user setting
-    if (! spiral_vase && this->region()->config().fill_density.value > 0) {
+    if (! spiral_vase && this->config().fill_density.value > 0) {
         // scaling an area requires two calls!
-        double min_area = scale_(scale_(this->region()->config().solid_infill_below_area.value));
+        double min_area = scale_(scale_(this->config().solid_infill_below_area.value));
         for (Surface &surface : this->fill_surfaces.surfaces)
             if (surface.surface_type == stInternal && surface.area() <= min_area)
                 surface.surface_type = stInternalSolid;

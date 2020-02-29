@@ -69,6 +69,7 @@ endif()
 # Create a slic3r executable
 # Process mainfests for various platforms.
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/platform/msw/PrusaSlicer.rc.in ${CMAKE_CURRENT_BINARY_DIR}/PrusaSlicer.rc @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/platform/msw/PrusaSlicerServer.rc.in ${CMAKE_CURRENT_BINARY_DIR}/PrusaSlicerServer.rc @ONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/platform/msw/PrusaSlicer.manifest.in ${CMAKE_CURRENT_BINARY_DIR}/PrusaSlicer.manifest @ONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/platform/osx/Info.plist.in ${CMAKE_CURRENT_BINARY_DIR}/Info.plist @ONLY)
 if (WIN32)
@@ -145,7 +146,7 @@ if (WIN32)
     set_target_properties(PrusaSlicer_app_console PROPERTIES OUTPUT_NAME "prusa-slicer-console")
     target_link_libraries(PrusaSlicer_app_console PRIVATE boost_headeronly)
 
-    add_executable(PrusaSlicer_app_server PrusaSlicer_server_msvc.cpp log_catcher.cpp ${CMAKE_CURRENT_BINARY_DIR}/PrusaSlicer.rc)
+    add_executable(PrusaSlicer_app_server PrusaSlicer_server_msvc.cpp PrusaSlicer_server_CLI.cpp PrusaSlicer_server_server.cpp log_catcher.cpp ${CMAKE_CURRENT_BINARY_DIR}/PrusaSlicerServer.rc)
 	# We directly link slicerlib to the server, not via PrusaSlicer.dll
 	target_link_libraries(PrusaSlicer_app_server libslic3r cereal boost_headeronly user32.lib Setupapi.lib)
     # Generate debug symbols even in release mode.

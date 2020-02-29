@@ -27,9 +27,9 @@ bool Layer::empty() const
     return true;
 }
 
-LayerRegion* Layer::add_region(PrintRegion* print_region)
+LayerRegion* Layer::add_region(PrintRegion* print_region, std::vector<float> &slice_zs)
 {
-    m_regions.emplace_back(new LayerRegion(this, print_region));
+    m_regions.emplace_back(new LayerRegion(this, print_region, slice_zs));
     return m_regions.back();
 }
 
@@ -91,7 +91,7 @@ ExPolygons Layer::merged(float offset_scaled) const
     }
     Polygons polygons;
 	for (LayerRegion *layerm : m_regions) {
-		const PrintRegionConfig &config = layerm->region()->config();
+		const PrintRegionConfig &config = layerm->config();
 		// Our users learned to bend Slic3r to produce empty volumes to act as subtracters. Only add the region if it is non-empty.
 		if (config.bottom_solid_layers > 0 || config.top_solid_layers > 0 || config.fill_density > 0. || config.perimeters > 0)
 			append(polygons, offset(to_expolygons(layerm->slices.surfaces), offset_scaled));
@@ -118,14 +118,14 @@ void Layer::make_perimeters()
             continue;
         BOOST_LOG_TRIVIAL(trace) << "Generating perimeters for layer " << this->id() << ", region " << region_id;
         done[region_id] = true;
-        const PrintRegionConfig &config = (*layerm)->region()->config();
+        const PrintRegionConfig &config = (*layerm)->config();
         
         // find compatible regions
         LayerRegionPtrs layerms;
         layerms.push_back(*layerm);
         for (LayerRegionPtrs::const_iterator it = layerm + 1; it != m_regions.end(); ++it) {
             LayerRegion* other_layerm = *it;
-            const PrintRegionConfig &other_config = other_layerm->region()->config();
+            const PrintRegionConfig &other_config = other_layerm->config();
             if (config.perimeter_extruder   == other_config.perimeter_extruder
                 && config.perimeters        == other_config.perimeters
                 && config.perimeter_speed   == other_config.perimeter_speed
@@ -155,7 +155,7 @@ void Layer::make_perimeters()
                 for (LayerRegion *layerm : layerms) {
                     for (Surface &surface : layerm->slices.surfaces)
                         slices[surface.extra_perimeters].emplace_back(surface);
-                    if (layerm->region()->config().fill_density > layerm_config->region()->config().fill_density)
+                    if (layerm->config().fill_density > layerm_config->config().fill_density)
                     	layerm_config = layerm;
                 }
                 // merge the surfaces assigned to each group

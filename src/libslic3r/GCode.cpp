@@ -909,15 +909,15 @@ namespace DoExport {
 	            const PrintRegion* region = print.regions()[region_id];
 	            for (auto layer : object->layers()) {
 	                const LayerRegion* layerm = layer->regions()[region_id];
-	                if (region->config().get_abs_value("perimeter_speed") == 0 ||
-	                    region->config().get_abs_value("small_perimeter_speed") == 0 ||
-	                    region->config().get_abs_value("external_perimeter_speed") == 0 ||
-	                    region->config().get_abs_value("bridge_speed") == 0)
+	                if (layerm->config().get_abs_value("perimeter_speed") == 0 ||
+						layerm->config().get_abs_value("small_perimeter_speed") == 0 ||
+						layerm->config().get_abs_value("external_perimeter_speed") == 0 ||
+						layerm->config().get_abs_value("bridge_speed") == 0)
 	                    mm3_per_mm.push_back(layerm->perimeters.min_mm3_per_mm());
-	                if (region->config().get_abs_value("infill_speed") == 0 ||
-	                    region->config().get_abs_value("solid_infill_speed") == 0 ||
-	                    region->config().get_abs_value("top_solid_infill_speed") == 0 ||
-	                    region->config().get_abs_value("bridge_speed") == 0)
+	                if (layerm->config().get_abs_value("infill_speed") == 0 ||
+						layerm->config().get_abs_value("solid_infill_speed") == 0 ||
+						layerm->config().get_abs_value("top_solid_infill_speed") == 0 ||
+						layerm->config().get_abs_value("bridge_speed") == 0)
 	                    mm3_per_mm.push_back(layerm->fills.min_mm3_per_mm());
 	            }
 	        }
@@ -1957,7 +1957,7 @@ void GCode::process_layer(
         bool enable = (layer.id() > 0 || print.config().brim_width.value == 0.) && (layer.id() >= (size_t)print.config().skirt_height.value && ! print.has_infinite_skirt());
         if (enable) {
             for (const LayerRegion *layer_region : layer.regions())
-                if (size_t(layer_region->region()->config().bottom_solid_layers.value) > layer.id() ||
+                if (size_t(layer_region->config().bottom_solid_layers.value) > layer.id() ||
                     layer_region->perimeters.items_count() > 1u ||
                     layer_region->fills.items_count() > 0) {
                     enable = false;
@@ -2881,7 +2881,7 @@ std::string GCode::extrude_perimeters(const Print &print, const std::vector<Obje
 {
     std::string gcode;
     for (const ObjectByExtruder::Island::Region &region : by_region) {
-        m_config.apply(print.regions()[&region - &by_region.front()]->config());
+        m_config.apply(print.regions()[&region - &by_region.front()]->prconfig());
         for (const ExtrusionEntity *ee : region.perimeters)
             gcode += this->extrude_entity(*ee, "perimeter", -1., &lower_layer_edge_grid);
     }
@@ -2893,7 +2893,7 @@ std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectBy
 {
     std::string gcode;
     for (const ObjectByExtruder::Island::Region &region : by_region) {
-        m_config.apply(print.regions()[&region - &by_region.front()]->config());
+        m_config.apply(print.regions()[&region - &by_region.front()]->prconfig());
 		ExtrusionEntitiesPtr extrusions { region.infills };
 		chain_and_reorder_extrusion_entities(extrusions, &m_last_pos);
         for (const ExtrusionEntity *fill : extrusions) {
