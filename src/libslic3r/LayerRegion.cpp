@@ -43,7 +43,28 @@ LayerRegion::LayerRegion(Layer* layer, PrintRegion* region, std::vector<float> &
 			patternConfig.perimeters.set(new ConfigOptionInt(patternConfig.layer_pattern_perimeters.values[index]));
 			patternConfig.fill_pattern.set(new ConfigOptionEnum<InfillPattern>(patternConfig.layer_pattern_fill_pattern.values[index]));
 			patternConfig.fill_density.set(new ConfigOptionPercent(patternConfig.layer_pattern_fill_density.values[index]));
-			patternConfig.fill_angle.set(new ConfigOptionFloat(patternConfig.layer_pattern_fill_angle.values[index]));
+
+			float angle = patternConfig.layer_pattern_fill_angle.values[index];
+			Layer* lower_layer = layer->lower_layer;
+			if (patternConfig.layer_pattern_angle_relative.values[index]	// Relative angles need to consult the previous layer
+			&& lower_layer != nullptr)	// Only if there IS a previous layer
+			{
+				LayerRegionPtrs regions = lower_layer->regions();
+				int lri = 0;
+				while (lri < regions.size())
+				{
+					if (regions[lri]->m_region == region)
+					{
+						break;
+					}
+					lri++;
+				}
+				if (lri < regions.size())
+				{
+					angle += regions[lri]->patternConfig.fill_angle;
+				}
+			} 
+			patternConfig.fill_angle.set(new ConfigOptionFloat(angle));
 		}
 	}
 }
