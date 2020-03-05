@@ -359,6 +359,239 @@ void PrintConfigDef::init_layer_pattern_params()
 #endif
 }
 
+void PrintConfigDef::init_layer_pattern_params()
+{
+	ConfigOptionDef* def;
+	const ConfigOptionMode layerPatternMode = comExpert;
+
+	def = this->add("layer_pattern_enabled", coBool);
+	def->label = L("LP:Enabled");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("Ignore all layer_pattern* if false.");
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionBool(false));
+
+	def = this->add("layer_pattern_continuous_print", coBool);
+	def->label = L("LP:Continuous print");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("Do not stop extruding between layers during Z movements.");
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionBool(false));
+
+	def = this->add("layer_pattern_avoid_flyover", coBool);
+	def->label = L("LP:Avoid flyover");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("Attempt to never move over printed areas.");
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionBool(false));
+
+	def = this->add("layer_pattern_minimum_z", coFloat);
+	def->label = L("LP:Min Z");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("Start using the layer patterns at this Z height.");
+	def->sidetext = L("mm");
+	def->min = 0;
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionFloat(0));
+
+	def = this->add("layer_pattern_maximum_z", coFloat);
+	def->label = L("LP:Min Z");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("Stop using the layer patterns at this Z height.  Zero "
+					"will use to the top.");
+	def->sidetext = L("mm");
+	def->min = 0;
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionFloat(0));
+
+	def = this->add("layer_pattern_count", coInt);
+	def->label = L("LP:Count");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("Number of layers before repeating.  Zero disables.");
+	def->min = 0;
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionInt(0));
+
+	def = this->add("layer_pattern_perimeters", coInts);
+	def->label = L("LP:Count");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("Number of perimeters in this layer.  Zero disables.");
+	def->min = 0;
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionInts({}));
+
+	def = this->add("layer_pattern_fill_pattern", coEnums);
+	def->label = L("LP:Fill pattern");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("Fill pattern for each layer.");
+	def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
+	def->enum_values.push_back("rectilinear");
+	def->enum_values.push_back("grid");
+	def->enum_values.push_back("triangles");
+	def->enum_values.push_back("stars");
+	def->enum_values.push_back("cubic");
+	def->enum_values.push_back("line");
+	def->enum_values.push_back("concentric");
+	def->enum_values.push_back("honeycomb");
+	def->enum_values.push_back("3dhoneycomb");
+	def->enum_values.push_back("gyroid");
+	def->enum_values.push_back("hilbertcurve");
+	def->enum_values.push_back("archimedeanchords");
+	def->enum_values.push_back("octagramspiral");
+	def->enum_labels.push_back(L("Rectilinear"));
+	def->enum_labels.push_back(L("Grid"));
+	def->enum_labels.push_back(L("Triangles"));
+	def->enum_labels.push_back(L("Stars"));
+	def->enum_labels.push_back(L("Cubic"));
+	def->enum_labels.push_back(L("Line"));
+	def->enum_labels.push_back(L("Concentric"));
+	def->enum_labels.push_back(L("Honeycomb"));
+	def->enum_labels.push_back(L("3D Honeycomb"));
+	def->enum_labels.push_back(L("Gyroid"));
+	def->enum_labels.push_back(L("Hilbert Curve"));
+	def->enum_labels.push_back(L("Archimedean Chords"));
+	def->enum_labels.push_back(L("Octagram Spiral"));
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionEnums<InfillPattern>({}));
+
+	def = this->add("layer_pattern_connector_type", coEnums);
+	def->label = L("LP:Connector type");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("Connector type between fill lines.");
+	def->enum_keys_map = &ConfigOptionEnum<ConnectorType>::get_enum_values();
+	def->enum_values.push_back("straight");
+	def->enum_values.push_back("round");
+	def->enum_values.push_back("none");
+	def->enum_labels.push_back(L("Straight"));
+	def->enum_labels.push_back(L("Round"));
+	def->enum_labels.push_back(L("None"));
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionEnums<ConnectorType>({}));
+
+	def = this->add("layer_pattern_fill_density", coPercents);
+	def->label = L("LP:Fill density");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("Density of internal infill, expressed in the range 0% - 100%.");
+	def->sidetext = L("%");
+	def->min = 0;
+	def->max = 100;
+	def->enum_values.push_back("0");
+	def->enum_values.push_back("5");
+	def->enum_values.push_back("10");
+	def->enum_values.push_back("15");
+	def->enum_values.push_back("20");
+	def->enum_values.push_back("25");
+	def->enum_values.push_back("30");
+	def->enum_values.push_back("40");
+	def->enum_values.push_back("50");
+	def->enum_values.push_back("60");
+	def->enum_values.push_back("70");
+	def->enum_values.push_back("80");
+	def->enum_values.push_back("90");
+	def->enum_values.push_back("100");
+	def->enum_labels.push_back("0%");
+	def->enum_labels.push_back("5%");
+	def->enum_labels.push_back("10%");
+	def->enum_labels.push_back("15%");
+	def->enum_labels.push_back("20%");
+	def->enum_labels.push_back("25%");
+	def->enum_labels.push_back("30%");
+	def->enum_labels.push_back("40%");
+	def->enum_labels.push_back("50%");
+	def->enum_labels.push_back("60%");
+	def->enum_labels.push_back("70%");
+	def->enum_labels.push_back("80%");
+	def->enum_labels.push_back("90%");
+	def->enum_labels.push_back("100%");
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionPercents({}));
+
+	def = this->add("layer_pattern_shift_distance", coFloats);
+	def->label = L("LP:Shift distance");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("Shift distance between fill lines.  Non-Zero overrides fill density.");
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionFloats{ });
+
+	def = this->add("layer_pattern_fill_angle", coFloats);
+	def->label = L("LP:Angle");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("Angle of fill.");
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionFloats{ });
+
+	def = this->add("layer_pattern_angle_relative", coBools);
+	def->label = L("LP:Angle relative");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("Specified angle is relative (cumulative) with previous layer(s).");
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionBools( { false }));
+
+	def = this->add("layer_pattern_overshoot", coFloats);
+	def->label = L("LP:Overshoot");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("Distance to overshoot perimeter with fill.");
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionFloats{ });
+
+	def = this->add("layer_pattern_extrusion_width", coFloats);
+	def->label = L("LP:Extrusion width");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("Set this to a non-zero value to allow a manual extrusion width. "
+		"If left to zero, Slic3r derives extrusion widths from the nozzle diameter "
+		"(see the tooltips for perimeter extrusion width, infill extrusion width etc). "
+//		"If expressed as percentage (for example: 230%), it will be computed over layer height."
+		);
+//	def->sidetext = L("mm or %");
+	def->sidetext = L("mm");
+	def->min = 0;
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionFloats{ });
+
+	def = this->add("layer_pattern_extrusion_multiplier", coFloats);
+	def->label = L("LP:Extrusion multiplier");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("This factor changes the amount of flow proportionally. You may need to tweak "
+		"this setting to get nice surface finish and correct single wall widths. "
+		"Usual values are between 0.9 and 1.1. If you think you need to change this more, "
+		"check filament diameter and your firmware E steps.");
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionFloats{ });
+
+	def = this->add("layer_pattern_infill_first", coBools);
+	def->label = L("LP:Print order");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("Print order, which comes first, the fill or the perimeter?");
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionBools({ false }));
+
+	def = this->add("layer_pattern_line_gap", coFloats);
+	def->label = L("LP:Line gap");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("Distance between fill line centers.  Non-Zero overrides fill density.");
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionFloats{ });
+
+#if 0
+	ConfigOptionBool		layer_pattern_continuous_print;
+	ConfigOptionBool		layer_pattern_avoid_flyover;
+	ConfigOptionFloat		layer_pattern_min_z;
+	ConfigOptionFloat		layer_pattern_max_z;
+	ConfigOptionInt			layer_pattern_count;	// Count of patterns
+	ConfigOptionEnums<InfillPattern>	layer_pattern_fill_patterns;
+	ConfigOptionEnums<ConnectorType>	layer_pattern_connector_types;
+	ConfigOptionPercents				layer_pattern_fill_densitys;	// Yes, I know it's not proper pluralization
+	ConfigOptionFloats					layer_pattern_shift_distances;
+	ConfigOptionFloats					layer_pattern_angles;
+	ConfigOptionBools					layer_pattern_angle_relatives;
+	ConfigOptionFloats					layer_pattern_overshoots;
+	ConfigOptionFloats					layer_pattern_extrusion_widths;
+	ConfigOptionFloats					layer_pattern_extrusion_multipiers;
+	ConfigOptionEnums<PrintOrder>		layer_pattern_print_orders;
+	ConfigOptionFloats					layer_pattern_line_gaps;	// Again, I know it's not proper pluralization
+#endif
+}
+
 void PrintConfigDef::init_fff_params()
 {
     ConfigOptionDef* def;
