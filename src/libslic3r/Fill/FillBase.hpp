@@ -35,6 +35,7 @@ struct FillParams
     bool        dont_connect;
 	ConnectorType	connector_type;		// Connections between (rectilinear) fill lines
 	float		overshoot;
+	float		shift;
 
     // Don't adjust spacing to fill the space evenly.
     bool        dont_adjust;

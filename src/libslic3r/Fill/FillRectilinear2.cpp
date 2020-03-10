@@ -799,7 +799,7 @@ bool FillRectilinear2::fill_surface_by_lines(const Surface *surface, const FillP
         // Transform the reference point to the rotated coordinate system.
         Point refpt = rotate_vector.second.rotated(- rotate_vector.first);
         // _align_to_grid will not work correctly with positive pattern_shift.
-        coord_t pattern_shift_scaled = coord_t(scale_(pattern_shift)) % line_spacing;
+        coord_t pattern_shift_scaled = coord_t(scale_(pattern_shift + params.shift)) % line_spacing;
         refpt(0) -= (pattern_shift_scaled >= 0) ? pattern_shift_scaled : (line_spacing + pattern_shift_scaled);
         bounding_box.merge(_align_to_grid(
             bounding_box.min, 
