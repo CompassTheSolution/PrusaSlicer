@@ -47,6 +47,7 @@ LayerRegion::LayerRegion(Layer* layer, PrintRegion* region, std::vector<float> &
 			patternConfig.fill_connector_type.set(new ConfigOptionEnum(patternConfig.layer_pattern_connector_type.values[index]));
 			patternConfig.infill_overshoot.set(new ConfigOptionFloat(patternConfig.layer_pattern_overshoot.values[index]));
 			patternConfig.infill_shift.set(new ConfigOptionFloat(patternConfig.layer_pattern_shift_distance.values[index]));
+			patternConfig.infill_line_gap.set(new ConfigOptionFloat(patternConfig.layer_pattern_line_gap.values[index]));
 
 			float angle = patternConfig.layer_pattern_fill_angle.values[index];
 			Layer* lower_layer = layer->lower_layer;
