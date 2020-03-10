@@ -33,6 +33,8 @@ struct FillParams
 
     // Don't connect the fill lines around the inner perimeter.
     bool        dont_connect;
+	ConnectorType	connector_type;		// Connections between (rectilinear) fill lines
+	float		overshoot;
 
     // Don't adjust spacing to fill the space evenly.
     bool        dont_adjust;

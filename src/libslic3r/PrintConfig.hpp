@@ -34,12 +34,12 @@ enum PrintHostType {
 };
 
 enum ConnectorType {
-    ctStraight, ctRound, ctNone, ctCount,
+    ctDefault, ctStraight, ctRound, ctNone, ctCount,
 };
 
 enum InfillPattern {
     ipRectilinear, ipGrid, ipTriangles, ipStars, ipCubic, ipLine, ipConcentric, ipHoneycomb, ip3DHoneycomb,
-    ipGyroid, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral, ipCount,
+    ipGyroid, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral, ipUniLine, ipCount,
 };
 
 enum SupportMaterialPattern {
@@ -109,6 +109,7 @@ template<> inline const t_config_enum_values& ConfigOptionEnum<PrintHostType>::g
 template<> inline const t_config_enum_values& ConfigOptionEnum<ConnectorType>::get_enum_values() {
 	static t_config_enum_values keys_map;
 	if (keys_map.empty()) {
+		keys_map["default"] = ctDefault;
 		keys_map["straight"] = ctStraight;
 		keys_map["round"] = ctRound;
 		keys_map["none"] = ctNone;
@@ -131,8 +132,9 @@ template<> inline const t_config_enum_values& ConfigOptionEnum<InfillPattern>::g
         keys_map["gyroid"]              = ipGyroid;
         keys_map["hilbertcurve"]        = ipHilbertCurve;
         keys_map["archimedeanchords"]   = ipArchimedeanChords;
-        keys_map["octagramspiral"]      = ipOctagramSpiral;
-    }
+		keys_map["octagramspiral"]		= ipOctagramSpiral;
+		keys_map["uniline"]				= ipUniLine;
+	}
     return keys_map;
 }
 
@@ -493,13 +495,15 @@ public:
     ConfigOptionBool                extra_perimeters;
     ConfigOptionFloat               fill_angle;
     ConfigOptionPercent             fill_density;
-    ConfigOptionEnum<InfillPattern> fill_pattern;
-    ConfigOptionFloat               gap_fill_speed;
+	ConfigOptionEnum<InfillPattern> fill_pattern;
+	ConfigOptionEnum<ConnectorType> fill_connector_type;
+	ConfigOptionFloat               gap_fill_speed;
     ConfigOptionInt                 infill_extruder;
     ConfigOptionFloatOrPercent      infill_extrusion_width;
     ConfigOptionInt                 infill_every_layers;
     ConfigOptionFloatOrPercent      infill_overlap;
     ConfigOptionFloat               infill_speed;
+	ConfigOptionFloat				infill_overshoot;
     // Detect bridging perimeters
     ConfigOptionBool                overhangs;
     ConfigOptionInt                 perimeter_extruder;
@@ -527,6 +531,7 @@ public:
 	ConfigOptionFloat		layer_pattern_minimum_z;
 	ConfigOptionFloat		layer_pattern_maximum_z;
 	ConfigOptionInt			layer_pattern_count;	// Count of patterns
+	ConfigOptionInt			layer_pattern_index;	// Index into multi-values for this layer
 	ConfigOptionInts					layer_pattern_perimeters;
 	ConfigOptionEnums<InfillPattern>	layer_pattern_fill_pattern;
 	ConfigOptionEnums<ConnectorType>	layer_pattern_connector_type;
@@ -556,14 +561,16 @@ protected:
         OPT_PTR(extra_perimeters);
         OPT_PTR(fill_angle);
         OPT_PTR(fill_density);
-        OPT_PTR(fill_pattern);
-        OPT_PTR(gap_fill_speed);
+		OPT_PTR(fill_pattern);
+		OPT_PTR(fill_connector_type);
+		OPT_PTR(gap_fill_speed);
         OPT_PTR(infill_extruder);
         OPT_PTR(infill_extrusion_width);
         OPT_PTR(infill_every_layers);
         OPT_PTR(infill_overlap);
-        OPT_PTR(infill_speed);
-        OPT_PTR(overhangs);
+		OPT_PTR(infill_speed);
+		OPT_PTR(infill_overshoot);
+		OPT_PTR(overhangs);
         OPT_PTR(perimeter_extruder);
         OPT_PTR(perimeter_extrusion_width);
         OPT_PTR(perimeter_speed);
@@ -587,6 +594,7 @@ protected:
 		OPT_PTR(layer_pattern_minimum_z);
 		OPT_PTR(layer_pattern_maximum_z);
 		OPT_PTR(layer_pattern_count);
+		OPT_PTR(layer_pattern_index);
 		OPT_PTR(layer_pattern_perimeters);
 		OPT_PTR(layer_pattern_fill_pattern);
 		OPT_PTR(layer_pattern_connector_type);

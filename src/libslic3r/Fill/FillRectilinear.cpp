@@ -69,6 +69,7 @@ void FillRectilinear::_fill_surface_single(
     const float INFILL_OVERLAP_OVER_SPACING = 0.3f;
     // How much to extend an infill path from expolygon outside?
     coord_t extra = coord_t(floor(this->_min_spacing * INFILL_OVERLAP_OVER_SPACING + 0.5f));
+	extra += scale_(params.overshoot);
     for (Polylines::iterator it_polyline = polylines.begin(); it_polyline != polylines.end(); ++ it_polyline) {
         Point *first_point = &it_polyline->points.front();
         Point *last_point  = &it_polyline->points.back();
@@ -81,7 +82,7 @@ void FillRectilinear::_fill_surface_single(
     size_t n_polylines_out_old = polylines_out.size();
 
     // connect lines
-    if (! params.dont_connect && ! polylines.empty()) { // prevent calling leftmost_point() on empty collections
+    if (! polylines.empty()) { // prevent calling leftmost_point() on empty collections
         // offset the expolygon by max(min_spacing/2, extra)
         ExPolygon expolygon_off;
         {
@@ -94,7 +95,7 @@ void FillRectilinear::_fill_surface_single(
         }
         bool first = true;
         for (Polyline &polyline : chain_polylines(std::move(polylines))) {
-            if (! first) {
+            if (! first && ! params.dont_connect) {
                 // Try to connect the lines.
                 Points &pts_end = polylines_out.back().points;
                 const Point &first_point = polyline.points.front();

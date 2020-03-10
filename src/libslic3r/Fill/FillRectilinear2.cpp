@@ -807,7 +807,7 @@ bool FillRectilinear2::fill_surface_by_lines(const Surface *surface, const FillP
             refpt));
     }
 
-    // Intersect a set of euqally spaced vertical lines wiht expolygon.
+    // Intersect a set of equally spaced vertical lines with expolygon.
     // n_vlines = ceil(bbox_width / line_spacing)
     size_t  n_vlines = (bounding_box.max(0) - bounding_box.min(0) + line_spacing - 1) / line_spacing;
 	coord_t x0 = bounding_box.min(0);
@@ -1035,7 +1035,11 @@ bool FillRectilinear2::fill_surface_by_lines(const Surface *surface, const FillP
         }
     }
 
-    // Now construct a graph.
+
+	coord_t scaled_overshoot = coord_t(scale_(params.overshoot));
+#define IPOS(in) ((in).pos()+(((in).type==SegmentIntersection::OUTER_LOW)?-scaled_overshoot:((in).type==SegmentIntersection::OUTER_HIGH)?scaled_overshoot:0))
+#define PPOS(pin) IPOS(*pin)
+	// Now construct a graph.
     // Find the first point.
     // Naively one would expect to achieve best results by chaining the paths by the shortest distance,
     // but that procedure does not create the longest continuous paths.
@@ -1091,8 +1095,8 @@ bool FillRectilinear2::fill_surface_by_lines(const Surface *surface, const FillP
             polylines_out.push_back(Polyline());
             polyline_current = &polylines_out.back();
             // Emit the first point of a path.
-            pointLast = Point(segs[i_vline].pos, segs[i_vline].intersections[i_intersection].pos());
-            polyline_current->points.push_back(pointLast);
+			pointLast = Point(segs[i_vline].pos, IPOS(segs[i_vline].intersections[i_intersection]));
+			polyline_current->points.push_back(pointLast);
         }
 
         // From the initial point (i_vline, i_intersection), follow a path.
@@ -1241,13 +1245,13 @@ bool FillRectilinear2::fill_surface_by_lines(const Surface *surface, const FillP
                 if (skip) {
                     // Just skip the connecting contour and start a new path.
                     goto dont_connect;
-                    polyline_current->points.push_back(Point(seg.pos, intrsctn->pos()));
+                    polyline_current->points.push_back(Point(seg.pos, PPOS(intrsctn)));
                     polylines_out.push_back(Polyline()); 
                     polyline_current = &polylines_out.back(); 
                     const SegmentedIntersectionLine &il2 = segs[take_next ? (i_vline + 1) : (i_vline - 1)];
-                    polyline_current->points.push_back(Point(il2.pos, il2.intersections[take_next ? iNext : iPrev].pos()));
+                    polyline_current->points.push_back(Point(il2.pos, IPOS(il2.intersections[take_next ? iNext : iPrev])));
                 } else {
-                    polyline_current->points.push_back(Point(seg.pos, intrsctn->pos()));
+                    polyline_current->points.push_back(Point(seg.pos, PPOS(intrsctn)));
                     emit_perimeter_prev_next_segment(poly_with_offset, segs, i_vline, intrsctn->iContour, i_intersection, take_next ? iNext : iPrev, *polyline_current, take_next);
                 }
                 // Mark both the left and right connecting segment as consumed, because one cannot go to this intersection point as it has been consumed.
@@ -1310,7 +1314,7 @@ bool FillRectilinear2::fill_surface_by_lines(const Surface *surface, const FillP
                         // Just skip the connecting contour and start a new path.
                         polylines_out.push_back(Polyline()); 
                         polyline_current = &polylines_out.back();
-                        polyline_current->points.push_back(Point(seg.pos, seg.intersections[iNext].pos()));
+                        polyline_current->points.push_back(Point(seg.pos, IPOS(seg.intersections[iNext])));
                     } else {
                         // Consume the connecting contour and the next segment.
                         emit_perimeter_segment_on_vertical_line(poly_with_offset, segs, i_vline, intrsctn->iContour, i_intersection, iNext, *polyline_current, dir_forward);
@@ -1349,7 +1353,7 @@ bool FillRectilinear2::fill_surface_by_lines(const Surface *surface, const FillP
         // reset the current vertical line to pick a new starting point in the next round.
         assert(intrsctn->is_outer());
         assert(intrsctn->is_high() == going_up);
-        pointLast = Point(seg.pos, intrsctn->pos());
+        pointLast = Point(seg.pos, PPOS(intrsctn));
         polyline_current->points.push_back(pointLast);
         // Handle duplicate points and zero length segments.
         polyline_current->remove_duplicate_points();
@@ -1455,22 +1459,31 @@ Polylines FillStars::fill_surface(const Surface *surface, const FillParams &para
     return polylines_out;
 }
 
-Polylines FillCubic::fill_surface(const Surface *surface, const FillParams &params)
+Polylines FillCubic::fill_surface(const Surface* surface, const FillParams& params)
 {
-    // Each linear fill covers 1/3 of the target coverage.
-    FillParams params2 = params;
-    params2.density *= 0.333333333f;
-    FillParams params3 = params2;
-    params3.dont_connect = true;
-    Polylines polylines_out;
-    coordf_t dx = sqrt(0.5) * z;
-    if (! fill_surface_by_lines(surface, params2, 0.f, dx, polylines_out) ||
-        ! fill_surface_by_lines(surface, params2, float(M_PI / 3.), - dx, polylines_out) ||
-        // Rotated by PI*2/3 + PI to achieve reverse sloping wall.
-        ! fill_surface_by_lines(surface, params3, float(M_PI * 2. / 3.), dx, polylines_out)) {
-        printf("FillCubic::fill_surface() failed to fill a region.\n");
-    } 
-    return polylines_out; 
+	// Each linear fill covers 1/3 of the target coverage.
+	FillParams params2 = params;
+	params2.density *= 0.333333333f;
+	FillParams params3 = params2;
+	params3.dont_connect = true;
+	Polylines polylines_out;
+	coordf_t dx = sqrt(0.5) * z;
+	if (!fill_surface_by_lines(surface, params2, 0.f, dx, polylines_out) ||
+		!fill_surface_by_lines(surface, params2, float(M_PI / 3.), -dx, polylines_out) ||
+		// Rotated by PI*2/3 + PI to achieve reverse sloping wall.
+		!fill_surface_by_lines(surface, params3, float(M_PI * 2. / 3.), dx, polylines_out)) {
+		printf("FillCubic::fill_surface() failed to fill a region.\n");
+	}
+	return polylines_out;
+}
+
+Polylines FillUniLine::fill_surface(const Surface* surface, const FillParams& params)
+{
+	Polylines polylines_out;
+	if (!fill_surface_by_lines(surface, params, 0.f, 0.f, polylines_out)) {
+		printf("FillUniLine::fill_surface() failed to fill a region.\n");
+	}
+	return polylines_out;
 }
 
 } // namespace Slic3r

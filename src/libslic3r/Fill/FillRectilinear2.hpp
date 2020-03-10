@@ -68,6 +68,20 @@ protected:
     virtual float _layer_angle(size_t idx) const { return 0.f; }
 };
 
+class FillUniLine : public FillRectilinear2
+{
+public:
+	virtual Fill* clone() const { return new FillUniLine(*this); };
+	virtual ~FillUniLine() {}
+	virtual Polylines fill_surface(const Surface* surface, const FillParams& params);
+
+protected:
+	// The grid fill will keep the angle constant between the layers, see the implementation of Slic3r::Fill.
+	virtual float _layer_angle(size_t idx) const { return 0.f; }
+
+	// Can't sort these or they may get reversed
+	virtual bool no_sort() const { return true; }
+};
 
 }; // namespace Slic3r
 
