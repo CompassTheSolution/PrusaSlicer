@@ -37,7 +37,8 @@ struct SurfaceFillParams
 	ConnectorType	connector_type;	// connector between (rectilinear) fill lines
 	float			overshoot;
 	float			shift;
-    // Don't adjust spacing to fill the space evenly.
+	float			line_gap;
+	// Don't adjust spacing to fill the space evenly.
     bool        	dont_adjust = false;
 
     // width, height of extrusion, nozzle diameter, is bridge
@@ -71,6 +72,7 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, connector_type);
 		RETURN_COMPARE_NON_EQUAL(overshoot);
 		RETURN_COMPARE_NON_EQUAL(shift);
+		RETURN_COMPARE_NON_EQUAL(line_gap);
 		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, dont_adjust);
 		RETURN_COMPARE_NON_EQUAL(flow.width);
 		RETURN_COMPARE_NON_EQUAL(flow.height);
@@ -92,6 +94,7 @@ struct SurfaceFillParams
 				this->connector_type	== rhs.connector_type	&&
 				this->overshoot			== rhs.overshoot		&&
 				this->shift				== rhs.shift			&&
+				this->line_gap			== rhs.line_gap			&&
 				this->dont_adjust   	== rhs.dont_adjust 		&&
 				this->flow 				== rhs.flow 			&&
 				this->extrusion_role	== rhs.extrusion_role;
@@ -149,6 +152,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer)
 				params.connector_type = layerm.config().fill_connector_type;
 				params.overshoot = layerm.config().infill_overshoot;
 				params.shift = layerm.config().infill_shift;
+				params.line_gap = layerm.config().infill_line_gap;
 
 		        // calculate the actual flow we'll be using for this infill
 		        params.flow = layerm.region()->flow(
@@ -384,6 +388,7 @@ void Layer::make_fills()
 		params.connector_type = surface_fill.params.connector_type;
 		params.overshoot = surface_fill.params.overshoot;
 		params.shift = surface_fill.params.shift;
+		params.line_gap = surface_fill.params.line_gap;
 
         for (ExPolygon &expoly : surface_fill.expolygons) {
 			// Spacing is modified by the filler to indicate adjustments. Reset it for each expolygon.
