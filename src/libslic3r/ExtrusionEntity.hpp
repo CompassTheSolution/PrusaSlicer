@@ -75,7 +75,8 @@ public:
     virtual ExtrusionRole role() const = 0;
     virtual bool is_collection() const { return false; }
     virtual bool is_loop() const { return false; }
-    virtual bool can_reverse() const { return true; }
+	bool m_reversible = true;
+    virtual bool can_reverse() const { return m_reversible; }
     virtual ExtrusionEntity* clone() const = 0;
     // Create a new object, initialize it with this object using the move semantics.
     virtual ExtrusionEntity* clone_move() = 0;
@@ -188,7 +189,7 @@ public:
     ExtrusionMultiPath& operator=(ExtrusionMultiPath &&rhs) { this->paths = std::move(rhs.paths); return *this; }
 
     bool is_loop() const override { return false; }
-    bool can_reverse() const override { return true; }
+    //bool can_reverse() const override { return true; }
 	ExtrusionEntity* clone() const override { return new ExtrusionMultiPath(*this); }
     // Create a new object, initialize it with this object using the move semantics.
 	ExtrusionEntity* clone_move() override { return new ExtrusionMultiPath(std::move(*this)); }
