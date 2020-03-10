@@ -142,8 +142,10 @@ void Fill3DHoneycomb::_fill_surface_single(
 {
     // no rotation is supported for this infill pattern
     BoundingBox bb = expolygon.contour.bounding_box();
-    coord_t     distance = coord_t(scale_(this->spacing) / params.density);
-
+	coord_t distance;
+	if (params.line_gap == 0.0 || params.line_gap < this->spacing)
+		distance = coord_t(scale_(this->spacing) / params.density);
+	else distance = coord_t(scale_(params.line_gap));
     // align bounding box to a multiple of our honeycomb grid module
     // (a module is 2*$distance since one $distance half-module is 
     // growing while the other $distance half-module is shrinking)
