@@ -504,6 +504,7 @@ public:
     ConfigOptionFloatOrPercent      infill_overlap;
     ConfigOptionFloat               infill_speed;
 	ConfigOptionFloat				infill_overshoot;
+	ConfigOptionFloat				infill_shift;
     // Detect bridging perimeters
     ConfigOptionBool                overhangs;
     ConfigOptionInt                 perimeter_extruder;
@@ -570,6 +571,7 @@ protected:
         OPT_PTR(infill_overlap);
 		OPT_PTR(infill_speed);
 		OPT_PTR(infill_overshoot);
+		OPT_PTR(infill_shift);
 		OPT_PTR(overhangs);
         OPT_PTR(perimeter_extruder);
         OPT_PTR(perimeter_extrusion_width);
