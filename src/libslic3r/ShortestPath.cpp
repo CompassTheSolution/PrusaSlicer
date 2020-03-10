@@ -13,10 +13,13 @@
 #include <cmath>
 #include <cassert>
 
+#define REVERSE_SINGLE_POINT	// This fixes non-reversible paths by only considering the first point
+
 namespace Slic3r {
 
 // Naive implementation of the Traveling Salesman Problem, it works by always taking the next closest neighbor.
 // This implementation will always produce valid result even if some segments cannot reverse.
+// But it fails IF ALL segments cannot reverse!
 template<typename EndPointType, typename KDTreeType, typename CouldReverseFunc>
 std::vector<std::pair<size_t, bool>> chain_segments_closest_point(std::vector<EndPointType> &end_points, KDTreeType &kdtree, CouldReverseFunc &could_reverse_func, EndPointType &first_point)
 {
@@ -38,10 +41,14 @@ std::vector<std::pair<size_t, bool>> chain_segments_closest_point(std::vector<En
     	// Ignore the starting point as the starting point is considered to be occupied, no end point coud connect to it.
 		size_t next_idx = find_closest_point(kdtree, this_point.pos,
 			[this_idx, &end_points, &could_reverse_func](size_t idx) {
+#ifdef REVERSE_SINGLE_POINT
+				return (idx ^ this_idx) > 1 && end_points[idx].chain_id == 0;
+#else
 				return (idx ^ this_idx) > 1 && end_points[idx].chain_id == 0 && ((idx ^ 1) == 0 || could_reverse_func(idx >> 1));
-		});
+#endif
+			});
 		assert(next_idx < end_points.size());
-		EndPointType &end_point = end_points[next_idx];
+		EndPointType& end_point = end_points[next_idx];
 		end_point.chain_id = 1;
 		out.emplace_back(next_idx / 2, (next_idx & 1) != 0);
 		this_idx = next_idx ^ 1;
@@ -96,8 +103,13 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 	    end_points.reserve(num_segments * 2);
 	    for (size_t i = 0; i < num_segments; ++ i) {
             end_points.emplace_back(end_point_func(i, true ).template cast<double>());
-            end_points.emplace_back(end_point_func(i, false).template cast<double>());
-	    }
+#ifdef REVERSE_SINGLE_POINT
+			if (!could_reverse_func(i))
+				end_points.emplace_back(end_point_func(i, true).template cast<double>());	// Put first point in twice if non-reversible
+			else
+#endif
+				end_points.emplace_back(end_point_func(i, false).template cast<double>());
+		}
 
 	    // Construct the closest point KD tree over end points of segments.
 		auto coordinate_fn = [&end_points](size_t idx, size_t dimension) -> double { return end_points[idx].pos[dimension]; };
@@ -345,6 +357,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 			size_t           segment_id 	= first_point_id >> 1;
 			bool             reverse        = (first_point_id & 1) != 0;
 			EndPoint 		*second_point   = &end_points[first_point_id ^ 1];
+#ifndef REVERSE_SINGLE_POINT
 			if (REVERSE_COULD_FAIL) {
 				if (reverse && ! could_reverse_func(segment_id)) {
 					failed = true;
@@ -354,8 +367,12 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 				assert(! reverse || could_reverse_func(segment_id));
 			}
 			out.emplace_back(segment_id, reverse);
+#else
+			out.emplace_back(segment_id, reverse && could_reverse_func(segment_id));	// Only flag reversible ones for reversal
+#endif
 			first_point = second_point->edge_out;
 		} while (first_point != nullptr);
+#ifndef REVERSE_SINGLE_POINT
 		if (REVERSE_COULD_FAIL) {
 			if (failed) {
 				if (start_near == nullptr) {
@@ -384,6 +401,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 		} else {
 			assert(! failed);
 		}
+#endif
 	}
 
 	assert(out.size() == num_segments);
@@ -505,8 +523,13 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 	    end_points.reserve(num_segments * 2);
 	    for (size_t i = 0; i < num_segments; ++ i) {
             end_points.emplace_back(end_point_func(i, true ).template cast<double>());
-            end_points.emplace_back(end_point_func(i, false).template cast<double>());
-	    }
+#ifdef REVERSE_SINGLE_POINT
+			if (!could_reverse_func(i))
+				end_points.emplace_back(end_point_func(i, true).template cast<double>());
+			else
+#endif
+			end_points.emplace_back(end_point_func(i, false).template cast<double>());
+		}
 
 	    // Construct the closest point KD tree over end points of segments.
 		auto coordinate_fn = [&end_points](size_t idx, size_t dimension) -> double { return end_points[idx].pos[dimension]; };
@@ -924,6 +947,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 			size_t           segment_id 	= first_point_id >> 1;
 			bool             reverse        = (first_point_id & 1) != 0;
 			EndPoint 		*second_point   = &end_points[first_point_id ^ 1];
+#ifndef REVERSE_SINGLE_POINT
 			if (REVERSE_COULD_FAIL) {
 				if (reverse && ! could_reverse_func(segment_id)) {
 					failed = true;
@@ -933,8 +957,12 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 				assert(! reverse || could_reverse_func(segment_id));
 			}
 			out.emplace_back(segment_id, reverse);
+#else
+			out.emplace_back(segment_id, reverse && could_reverse_func(segment_id));
+#endif
 			first_point = second_point->edge_out;
 		} while (first_point != nullptr);
+#ifndef REVERSE_SINGLE_POINT
 		if (REVERSE_COULD_FAIL) {
 			if (failed) {
 				if (start_near == nullptr) {
@@ -963,6 +991,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 		} else {
 			assert(! failed);
 		}
+#endif
 	}
 
 	assert(out.size() == num_segments);
