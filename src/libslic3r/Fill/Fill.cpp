@@ -34,6 +34,8 @@ struct SurfaceFillParams
     float       	density = 0.f;
     // Don't connect the fill lines around the inner perimeter.
     bool        	dont_connect = false;
+	ConnectorType	connector_type;	// connector between (rectilinear) fill lines
+	float			overshoot;
     // Don't adjust spacing to fill the space evenly.
     bool        	dont_adjust = false;
 
@@ -65,6 +67,8 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL(angle);
 		RETURN_COMPARE_NON_EQUAL(density);
 		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, dont_connect);
+		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, connector_type);
+		RETURN_COMPARE_NON_EQUAL(overshoot);
 		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, dont_adjust);
 		RETURN_COMPARE_NON_EQUAL(flow.width);
 		RETURN_COMPARE_NON_EQUAL(flow.height);
@@ -82,7 +86,9 @@ struct SurfaceFillParams
 				this->overlap 			== rhs.overlap 			&&
 				this->angle   			== rhs.angle   			&&
 				this->density   		== rhs.density   		&&
-				this->dont_connect  	== rhs.dont_connect 	&&
+				this->dont_connect		== rhs.dont_connect		&&
+				this->connector_type	== rhs.connector_type	&&
+				this->overshoot			== rhs.overshoot		&&
 				this->dont_adjust   	== rhs.dont_adjust 		&&
 				this->flow 				== rhs.flow 			&&
 				this->extrusion_role	== rhs.extrusion_role;
@@ -136,7 +142,10 @@ std::vector<SurfaceFill> group_fills(const Layer &layer)
 		                    erInternalInfill);
 		        params.bridge_angle = float(surface.bridge_angle);
 		        params.angle 		= float(Geometry::deg2rad(layerm.config().fill_angle.value));
-		        
+				params.dont_connect = layerm.config().fill_connector_type == ctNone;
+				params.connector_type = layerm.config().fill_connector_type;
+				params.overshoot = layerm.config().infill_overshoot;
+
 		        // calculate the actual flow we'll be using for this infill
 		        params.flow = layerm.region()->flow(
 		            extrusion_role,
@@ -367,6 +376,9 @@ void Layer::make_fills()
         FillParams params;
         params.density 		= float(0.01 * surface_fill.params.density);
         params.dont_adjust 	= surface_fill.params.dont_adjust; // false
+		params.dont_connect = surface_fill.params.dont_connect;
+		params.connector_type = surface_fill.params.connector_type;
+		params.overshoot = surface_fill.params.overshoot;
 
         for (ExPolygon &expoly : surface_fill.expolygons) {
 			// Spacing is modified by the filler to indicate adjustments. Reset it for each expolygon.
@@ -390,12 +402,19 @@ void Layer::make_fills()
 		        // Save into layer.
 		        auto *eec = new ExtrusionEntityCollection();
 		        m_regions[surface_fill.region_id]->fills.entities.push_back(eec);
-		        // Only concentric fills are not sorted.
+		        // Only concentric fills and unidirectional lines are not sorted.
 		        eec->no_sort = f->no_sort();
 		        extrusion_entities_append_paths(
 		            eec->entities, std::move(polylines),
 		            surface_fill.params.extrusion_role,
 		            flow_mm3_per_mm, float(flow_width), surface_fill.params.flow.height);
+				if (eec->no_sort)	// Non-sortable collections are also non-reversible
+				{
+					for (ExtrusionEntity *ee : eec->entities)
+					{
+						ee->m_reversible = false;
+					}
+				}
 		    }
 		}
     }

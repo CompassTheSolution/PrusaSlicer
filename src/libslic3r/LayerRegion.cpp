@@ -40,9 +40,12 @@ LayerRegion::LayerRegion(Layer* layer, PrintRegion* region, std::vector<float> &
 			usePatternConfig = true;
 			patternConfig = m_region->prconfig();
 
+			patternConfig.layer_pattern_index.set(new ConfigOptionInt(index));
 			patternConfig.perimeters.set(new ConfigOptionInt(patternConfig.layer_pattern_perimeters.values[index]));
 			patternConfig.fill_pattern.set(new ConfigOptionEnum<InfillPattern>(patternConfig.layer_pattern_fill_pattern.values[index]));
 			patternConfig.fill_density.set(new ConfigOptionPercent(patternConfig.layer_pattern_fill_density.values[index]));
+			patternConfig.fill_connector_type.set(new ConfigOptionEnum(patternConfig.layer_pattern_connector_type.values[index]));
+			patternConfig.infill_overshoot.set(new ConfigOptionFloat(patternConfig.layer_pattern_overshoot.values[index]));
 
 			float angle = patternConfig.layer_pattern_fill_angle.values[index];
 			Layer* lower_layer = layer->lower_layer;
