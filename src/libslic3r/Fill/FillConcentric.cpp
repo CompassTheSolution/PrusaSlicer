@@ -17,7 +17,10 @@ void FillConcentric::_fill_surface_single(
     BoundingBox bounding_box = expolygon.contour.bounding_box();
     
     coord_t min_spacing = scale_(this->spacing);
-    coord_t distance = coord_t(min_spacing / params.density);
+	coord_t distance;
+	if (params.line_gap == 0.0 || params.line_gap < this->spacing)
+		distance = coord_t(min_spacing / params.density);
+	else distance = coord_t(scale_(params.line_gap)); 
     
     if (params.density > 0.9999f && !params.dont_adjust) {
         distance = this->_adjust_solid_spacing(bounding_box.size()(0), distance);

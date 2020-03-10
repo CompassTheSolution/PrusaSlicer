@@ -163,7 +163,10 @@ void FillGyroid::_fill_surface_single(
     // Density adjusted to have a good %of weight.
     double      density_adjusted = std::max(0., params.density * DensityAdjust);
     // Distance between the gyroid waves in scaled coordinates.
-    coord_t     distance = coord_t(scale_(this->spacing) / density_adjusted);
+	coord_t     distance;
+	if (params.line_gap == 0.0 || params.line_gap < this->spacing)
+		distance = coord_t(scale_(this->spacing) / density_adjusted);
+	else distance = coord_t(scale_(params.line_gap));
 
     // align bounding box to a multiple of our grid module
     bb.merge(_align_to_grid(bb.min, Point(2*M_PI*distance, 2*M_PI*distance)));
