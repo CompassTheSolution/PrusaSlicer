@@ -83,6 +83,18 @@ protected:
 	virtual bool no_sort() const { return true; }
 };
 
+class FillBiLine : public FillRectilinear2
+{
+public:
+	virtual Fill* clone() const { return new FillBiLine(*this); };
+	virtual ~FillBiLine() {}
+	virtual Polylines fill_surface(const Surface* surface, const FillParams& params);
+
+protected:
+	// The grid fill will keep the angle constant between the layers, see the implementation of Slic3r::Fill.
+	virtual float _layer_angle(size_t idx) const { return 0.f; }
+};
+
 }; // namespace Slic3r
 
 #endif // slic3r_FillRectilinear2_hpp_
