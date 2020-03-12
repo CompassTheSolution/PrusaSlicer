@@ -628,6 +628,190 @@ static inline void emit_perimeter_prev_next_segment(
     out.points.push_back(Point(il2.pos, itsct2.pos()));
 }
 
+// Connect iIntersection to iIntersection2 with a straight line.
+// Both points are inserted into the result.
+static inline bool emit_straight_prev_next_segment(
+	const std::vector<SegmentedIntersectionLine>& segs,
+	size_t                                         iVerticalLine,
+	size_t                                         iIntersection,
+	size_t                                         iIntersection2,
+	Polyline& out,
+	bool                                           dir_is_next,
+	coord_t											scaled_overshoot)
+{
+	size_t iVerticalLineOther = iVerticalLine;
+	if (dir_is_next) {
+		++iVerticalLineOther;
+		assert(iVerticalLineOther < segs.size());
+	}
+	else {
+		assert(iVerticalLineOther > 0);
+		--iVerticalLineOther;
+	}
+
+	const SegmentedIntersectionLine& il = segs[iVerticalLine];
+	const SegmentIntersection& itsct = il.intersections[iIntersection];
+	const SegmentedIntersectionLine& il2 = segs[iVerticalLineOther];
+	const SegmentIntersection& itsct2 = il2.intersections[iIntersection2];
+
+	std::function<size_t(SegmentedIntersectionLine, size_t)> iendpoint = [](SegmentedIntersectionLine segs, size_t iInter) {
+		if (segs.intersections[iInter].is_low())
+		{
+			while (iInter > 0 && segs.intersections[iInter].type != SegmentIntersection::OUTER_LOW)
+				--iInter;
+			assert(segs.intersections[iInter].type == SegmentIntersection::OUTER_LOW);
+			return iInter;
+		}
+		else if (segs.intersections[iInter].is_high())
+		{
+			while (iInter+1 < segs.intersections.size() && segs.intersections[iInter].type != SegmentIntersection::OUTER_HIGH)
+				++iInter;
+			assert(segs.intersections[iInter].type == SegmentIntersection::OUTER_HIGH);
+			return iInter;
+		}
+		else return iInter;
+	};
+#define IPOS(in) ((in).pos()+(((in).is_low())?-scaled_overshoot:((in).is_high())?scaled_overshoot:0))
+	// Append the first point.
+	out.points.push_back(Point(il.pos, IPOS(il.intersections[iendpoint(il, iIntersection)])));
+	// Append the last point.
+	out.points.push_back(Point(il2.pos, IPOS(il2.intersections[iendpoint(il2, iIntersection2)])));
+	return true;
+#undef IPOS
+}
+
+// Connect iIntersection to iIntersection2 with a square (90 degree) line.
+// Both points are inserted into the result.
+static inline bool emit_square_prev_next_segment(
+	const std::vector<SegmentedIntersectionLine>& segs,
+	size_t                                         iVerticalLine,
+	size_t                                         iIntersection,
+	size_t                                         iIntersection2,
+	Polyline& out,
+	bool                                           dir_is_next,
+	coord_t											scaled_overshoot)
+{
+	size_t iVerticalLineOther = iVerticalLine;
+	if (dir_is_next) {
+		++iVerticalLineOther;
+		assert(iVerticalLineOther < segs.size());
+	}
+	else {
+		assert(iVerticalLineOther > 0);
+		--iVerticalLineOther;
+	}
+
+	std::function<size_t(SegmentedIntersectionLine, size_t)> iendpoint = [](SegmentedIntersectionLine segs, size_t iInter) {
+		if (segs.intersections[iInter].is_low())
+		{
+			while (iInter > 0 && segs.intersections[iInter].type != SegmentIntersection::OUTER_LOW)
+				--iInter;
+			assert(segs.intersections[iInter].type == SegmentIntersection::OUTER_LOW);
+			return iInter;
+		}
+		else if (segs.intersections[iInter].is_high())
+		{
+			while (iInter + 1 < segs.intersections.size() && segs.intersections[iInter].type != SegmentIntersection::OUTER_HIGH)
+				++iInter;
+			assert(segs.intersections[iInter].type == SegmentIntersection::OUTER_HIGH);
+			return iInter;
+		}
+		else return iInter;
+	};
+
+	const SegmentedIntersectionLine& il = segs[iVerticalLine];
+	const SegmentIntersection& itsct = il.intersections[iendpoint(il, iIntersection)];
+	const SegmentedIntersectionLine& il2 = segs[iVerticalLineOther];
+	const SegmentIntersection& itsct2 = il2.intersections[iendpoint(il2, iIntersection2)];
+
+	assert(itsct.type == itsct2.type);
+
+	coord_t minPos = std::min(itsct.pos(), itsct2.pos());
+	coord_t maxPos = std::max(itsct.pos(), itsct2.pos());
+	coord_t usePos = itsct.is_low() ? minPos - scaled_overshoot : maxPos + scaled_overshoot;
+
+	// Append the first point.
+	out.points.push_back(Point(il.pos, usePos));
+	// Append the last point.
+	out.points.push_back(Point(il2.pos, usePos));
+	return true;
+}
+
+// Connect iIntersection to iIntersection2 with a rounded line.
+// Both points are inserted into the result.
+static inline bool emit_round_prev_next_segment(
+	const std::vector<SegmentedIntersectionLine>& segs,
+	size_t                                         iVerticalLine,
+	size_t                                         iIntersection,
+	size_t                                         iIntersection2,
+	Polyline& out,
+	bool                                           dir_is_next,
+	coord_t											scaled_overshoot)
+{
+	size_t iVerticalLineOther = iVerticalLine;
+	if (dir_is_next) {
+		++iVerticalLineOther;
+		assert(iVerticalLineOther < segs.size());
+	}
+	else {
+		assert(iVerticalLineOther > 0);
+		--iVerticalLineOther;
+	}
+
+	std::function<size_t(SegmentedIntersectionLine, size_t)> iendpoint = [](SegmentedIntersectionLine segs, size_t iInter) {
+		if (segs.intersections[iInter].is_low())
+		{
+			while (iInter > 0 && segs.intersections[iInter].type != SegmentIntersection::OUTER_LOW)
+				--iInter;
+			assert(segs.intersections[iInter].type == SegmentIntersection::OUTER_LOW);
+			return iInter;
+		}
+		else if (segs.intersections[iInter].is_high())
+		{
+			while (iInter + 1 < segs.intersections.size() && segs.intersections[iInter].type != SegmentIntersection::OUTER_HIGH)
+				++iInter;
+			assert(segs.intersections[iInter].type == SegmentIntersection::OUTER_HIGH);
+			return iInter;
+		}
+		else return iInter;
+	};
+
+	const SegmentedIntersectionLine& il = segs[iVerticalLine];
+	const SegmentIntersection& itsct = il.intersections[iendpoint(il, iIntersection)];
+	const SegmentedIntersectionLine& il2 = segs[iVerticalLineOther];
+	const SegmentIntersection& itsct2 = il2.intersections[iendpoint(il2, iIntersection2)];
+
+	assert(itsct.type == itsct2.type);
+
+	coord_t minPos = std::min(itsct.pos(), itsct2.pos());
+	coord_t maxPos = std::max(itsct.pos(), itsct2.pos());
+	coord_t usePos = itsct.is_low() ? minPos - scaled_overshoot : maxPos + scaled_overshoot;
+
+	coord_t centerx = (il.pos + il2.pos) / 2;
+	coord_t radius = std::abs((il.pos - il2.pos) / 2);
+
+	coord_t length = M_PI * radius;	// Length of the semi-cricle (2*Pi*R/2)
+	size_t steps = length / scale_(0.25);	// Max length of 0.25mm
+
+	coord_t xm = (il.pos < il2.pos) ? -1 : 1;
+	coord_t ym = itsct.is_high() ? 1 : -1;
+
+	//if (itsct.is_low()) radius = -radius;	// Flip the semi-circle around at bottom
+
+	out.points.reserve(2+steps-1);
+	// Append the first point.
+	out.points.push_back(Point(il.pos, usePos));
+
+	for (size_t i = 1; i < steps; ++i) {
+		double angle = double(i) * M_PI / double(steps);
+		out.points.push_back(Point(centerx + xm * radius * cos(angle), usePos + ym * radius * sin(angle)));
+	}
+
+	// Append the last point.
+	out.points.push_back(Point(il2.pos, usePos));
+	return true;
+}
+
 static inline coordf_t measure_perimeter_segment_on_vertical_line_length(
     const ExPolygonWithOffset                     &poly_with_offset,
     const std::vector<SegmentedIntersectionLine>  &segs,
@@ -1038,10 +1222,13 @@ bool FillRectilinear2::fill_surface_by_lines(const Surface *surface, const FillP
         }
     }
 
-
 	coord_t scaled_overshoot = coord_t(scale_(params.overshoot));
+	std::function<coord_t(SegmentIntersection)> overshotpos = [scaled_overshoot](SegmentIntersection in) {
+		return ((in).pos() + (((in).type == SegmentIntersection::OUTER_LOW) ? -scaled_overshoot : ((in).type == SegmentIntersection::OUTER_HIGH) ? scaled_overshoot : 0));
+	};
 #define IPOS(in) ((in).pos()+(((in).type==SegmentIntersection::OUTER_LOW)?-scaled_overshoot:((in).type==SegmentIntersection::OUTER_HIGH)?scaled_overshoot:0))
 #define PPOS(pin) IPOS(*pin)
+
 	// Now construct a graph.
     // Find the first point.
     // Naively one would expect to achieve best results by chaining the paths by the shortest distance,
@@ -1248,14 +1435,42 @@ bool FillRectilinear2::fill_surface_by_lines(const Surface *surface, const FillP
                 if (skip) {
                     // Just skip the connecting contour and start a new path.
                     goto dont_connect;
-                    polyline_current->points.push_back(Point(seg.pos, PPOS(intrsctn)));
+#ifdef CANT_GET_HERE
+                    polyline_current->points.push_back(Point(seg.pos, intrsctn->pos()));
                     polylines_out.push_back(Polyline()); 
                     polyline_current = &polylines_out.back(); 
                     const SegmentedIntersectionLine &il2 = segs[take_next ? (i_vline + 1) : (i_vline - 1)];
-                    polyline_current->points.push_back(Point(il2.pos, IPOS(il2.intersections[take_next ? iNext : iPrev])));
+                    polyline_current->points.push_back(Point(il2.pos, il2.intersections[take_next ? iNext : iPrev].pos()));
+#endif
                 } else {
-                    polyline_current->points.push_back(Point(seg.pos, PPOS(intrsctn)));
-                    emit_perimeter_prev_next_segment(poly_with_offset, segs, i_vline, intrsctn->iContour, i_intersection, take_next ? iNext : iPrev, *polyline_current, take_next);
+					switch (params.connector_type)
+					{
+					case ctNone: break;	// Handled by dont_connect
+					case ctDefault:
+						polyline_current->points.push_back(Point(seg.pos, intrsctn->pos()));
+						emit_perimeter_prev_next_segment(poly_with_offset, segs, i_vline, intrsctn->iContour, i_intersection, take_next ? iNext : iPrev, * polyline_current, take_next);
+						break;
+					case ctStraight:
+					{
+						if (!emit_straight_prev_next_segment(segs, i_vline, i_intersection, take_next ? iNext : iPrev, *polyline_current, take_next, scaled_overshoot))
+							goto dont_connect;	// Failed to do the connection for some reason
+						break;
+					}
+					case ctSquare:
+					{
+						if (!emit_square_prev_next_segment(segs, i_vline, i_intersection, take_next ? iNext : iPrev, *polyline_current, take_next, scaled_overshoot))
+							goto dont_connect;	// Failed to do the connection for some reason
+						break;
+					}
+					case ctRound:
+					{
+						if (!emit_round_prev_next_segment(segs, i_vline, i_intersection, take_next ? iNext : iPrev, *polyline_current, take_next, scaled_overshoot))
+							goto dont_connect;	// Failed to do the connection for some reason
+						break;
+					}
+					default:
+						assert(false);	// Unsupported connector type
+					}
                 }
                 // Mark both the left and right connecting segment as consumed, because one cannot go to this intersection point as it has been consumed.
                 if (iPrev != -1)
@@ -1481,6 +1696,15 @@ Polylines FillCubic::fill_surface(const Surface* surface, const FillParams& para
 }
 
 Polylines FillUniLine::fill_surface(const Surface* surface, const FillParams& params)
+{
+	Polylines polylines_out;
+	if (!fill_surface_by_lines(surface, params, 0.f, 0.f, polylines_out)) {
+		printf("FillUniLine::fill_surface() failed to fill a region.\n");
+	}
+	return polylines_out;
+}
+
+Polylines FillBiLine::fill_surface(const Surface* surface, const FillParams& params)
 {
 	Polylines polylines_out;
 	if (!fill_surface_by_lines(surface, params, 0.f, 0.f, polylines_out)) {

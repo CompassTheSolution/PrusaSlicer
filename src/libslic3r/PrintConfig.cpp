@@ -206,6 +206,7 @@ void PrintConfigDef::init_layer_pattern_params()
 	def->enum_values.push_back("archimedeanchords");
 	def->enum_values.push_back("octagramspiral");
 	def->enum_values.push_back("uniline");
+	def->enum_values.push_back("biline");
 	def->enum_labels.push_back(L("Rectilinear"));
 	def->enum_labels.push_back(L("Grid"));
 	def->enum_labels.push_back(L("Triangles"));
@@ -220,6 +221,7 @@ void PrintConfigDef::init_layer_pattern_params()
 	def->enum_labels.push_back(L("Archimedean Chords"));
 	def->enum_labels.push_back(L("Octagram Spiral"));
 	def->enum_labels.push_back(L("Unidirectional Line"));
+	def->enum_labels.push_back(L("Bidirectional Line"));
 	def->mode = layerPatternMode;
 	def->set_default_value(new ConfigOptionEnums<InfillPattern>({}));
 
@@ -230,10 +232,12 @@ void PrintConfigDef::init_layer_pattern_params()
 	def->enum_keys_map = &ConfigOptionEnum<ConnectorType>::get_enum_values();
 	def->enum_values.push_back("default");
 	def->enum_values.push_back("straight");
+	def->enum_values.push_back("square");
 	def->enum_values.push_back("round");
 	def->enum_values.push_back("none");
 	def->enum_labels.push_back(L("Default"));
 	def->enum_labels.push_back(L("Straight"));
+	def->enum_labels.push_back(L("Square"));
 	def->enum_labels.push_back(L("Round"));
 	def->enum_labels.push_back(L("None"));
 	def->mode = layerPatternMode;
@@ -661,12 +665,14 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("archimedeanchords");
 	def->enum_values.push_back("octagramspiral");
 	def->enum_values.push_back("uniline");
+	def->enum_values.push_back("biline");
 	def->enum_labels.push_back(L("Rectilinear"));
     def->enum_labels.push_back(L("Concentric"));
     def->enum_labels.push_back(L("Hilbert Curve"));
     def->enum_labels.push_back(L("Archimedean Chords"));
-    def->enum_labels.push_back(L("Unidirectional Line"));
-    // solid_fill_pattern is an obsolete equivalent to top_fill_pattern/bottom_fill_pattern.
+	def->enum_labels.push_back(L("Unidirectional Line"));
+	def->enum_labels.push_back(L("Bidirectional Line"));
+	// solid_fill_pattern is an obsolete equivalent to top_fill_pattern/bottom_fill_pattern.
     def->aliases = { "solid_fill_pattern", "external_fill_pattern" };
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipRectilinear));
 
@@ -1080,6 +1086,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("archimedeanchords");
 	def->enum_values.push_back("octagramspiral");
 	def->enum_values.push_back("uniline");
+	def->enum_values.push_back("biline");
 	def->enum_labels.push_back(L("Rectilinear"));
     def->enum_labels.push_back(L("Grid"));
     def->enum_labels.push_back(L("Triangles"));
@@ -1094,6 +1101,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Archimedean Chords"));
 	def->enum_labels.push_back(L("Octagram Spiral"));
 	def->enum_labels.push_back(L("Unidirectional Line"));
+	def->enum_labels.push_back(L("Bidirectional Line"));
 	def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipStars));
 
     def = this->add("first_layer_acceleration", coFloat);

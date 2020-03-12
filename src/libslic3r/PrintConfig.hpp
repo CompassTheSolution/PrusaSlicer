@@ -34,12 +34,12 @@ enum PrintHostType {
 };
 
 enum ConnectorType {
-    ctDefault, ctStraight, ctRound, ctNone, ctCount,
+    ctDefault, ctStraight, ctSquare, ctRound, ctNone, ctCount,
 };
 
 enum InfillPattern {
     ipRectilinear, ipGrid, ipTriangles, ipStars, ipCubic, ipLine, ipConcentric, ipHoneycomb, ip3DHoneycomb,
-    ipGyroid, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral, ipUniLine, ipCount,
+    ipGyroid, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral, ipUniLine, ipBiLine, ipCount,
 };
 
 enum SupportMaterialPattern {
@@ -111,6 +111,7 @@ template<> inline const t_config_enum_values& ConfigOptionEnum<ConnectorType>::g
 	if (keys_map.empty()) {
 		keys_map["default"] = ctDefault;
 		keys_map["straight"] = ctStraight;
+		keys_map["square"] = ctSquare;
 		keys_map["round"] = ctRound;
 		keys_map["none"] = ctNone;
 	}
@@ -134,6 +135,7 @@ template<> inline const t_config_enum_values& ConfigOptionEnum<InfillPattern>::g
         keys_map["archimedeanchords"]   = ipArchimedeanChords;
 		keys_map["octagramspiral"]		= ipOctagramSpiral;
 		keys_map["uniline"]				= ipUniLine;
+		keys_map["biline"]				= ipBiLine;
 	}
     return keys_map;
 }
