@@ -179,6 +179,14 @@ void PrintConfigDef::init_layer_pattern_params()
 	def->mode = layerPatternMode;
 	def->set_default_value(new ConfigOptionInt(0));
 
+	def = this->add("layer_pattern_index", coInt);
+	def->label = L("LP:Index");
+	def->category = L("Layer Patterns");
+	def->tooltip = L("Index to the active layer.");
+	def->min = 0;
+	def->mode = layerPatternMode;
+	def->set_default_value(new ConfigOptionInt(0));
+
 	def = this->add("layer_pattern_perimeters", coInts);
 	def->label = L("LP:Count");
 	def->category = L("Layer Patterns");
@@ -309,6 +317,7 @@ void PrintConfigDef::init_layer_pattern_params()
 	def->mode = layerPatternMode;
 	def->set_default_value(new ConfigOptionFloats{ });
 
+#ifdef LAYER_PATTERN_EXTRUSION
 	def = this->add("layer_pattern_extrusion_width", coFloats);
 	def->label = L("LP:Extrusion width");
 	def->category = L("Layer Patterns");
@@ -332,6 +341,7 @@ void PrintConfigDef::init_layer_pattern_params()
 		"check filament diameter and your firmware E steps.");
 	def->mode = layerPatternMode;
 	def->set_default_value(new ConfigOptionFloats{ });
+#endif
 
 	def = this->add("layer_pattern_infill_first", coBools);
 	def->label = L("LP:Print order");
@@ -360,8 +370,10 @@ void PrintConfigDef::init_layer_pattern_params()
 	ConfigOptionFloats					layer_pattern_angles;
 	ConfigOptionBools					layer_pattern_angle_relatives;
 	ConfigOptionFloats					layer_pattern_overshoots;
+#ifdef LAYER_PATTERN_EXTRUSION
 	ConfigOptionFloats					layer_pattern_extrusion_widths;
 	ConfigOptionFloats					layer_pattern_extrusion_multipiers;
+#endif
 	ConfigOptionEnums<PrintOrder>		layer_pattern_print_orders;
 	ConfigOptionFloats					layer_pattern_line_gaps;	// Again, I know it's not proper pluralization
 #endif
@@ -1292,17 +1304,44 @@ void PrintConfigDef::init_fff_params()
     def->mode = comExpert;
     def->set_default_value(new ConfigOptionFloatOrPercent(25, true));
 
-    def = this->add("infill_speed", coFloat);
-    def->label = L("Infill");
-    def->category = L("Speed");
-    def->tooltip = L("Speed for printing the internal fill. Set to zero for auto.");
-    def->sidetext = L("mm/s");
-    def->aliases = { "print_feed_rate", "infill_feed_rate" };
-    def->min = 0;
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(80));
+	def = this->add("infill_speed", coFloat);
+	def->label = L("Infill");
+	def->category = L("Speed");
+	def->tooltip = L("Speed for printing the internal fill. Set to zero for auto.");
+	def->sidetext = L("mm/s");
+	def->aliases = { "print_feed_rate", "infill_feed_rate" };
+	def->min = 0;
+	def->mode = comAdvanced;
+	def->set_default_value(new ConfigOptionFloat(80));
 
-    def = this->add("inherits", coString);
+	def = this->add("infill_overshoot", coFloat);
+	def->label = L("Overshoot");
+	def->category = L("Infill");
+	def->tooltip = L("Overshoot distance for rectilinear fills.");
+	def->sidetext = L("mm");
+	def->min = 0;
+	def->mode = comAdvanced;
+	def->set_default_value(new ConfigOptionFloat(0));
+
+	def = this->add("infill_shift", coFloat);
+	def->label = L("Shift");
+	def->category = L("Infill");
+	def->tooltip = L("Off-center shift for fill pattern");
+	def->sidetext = L("mm");
+	def->min = 0;
+	def->mode = comAdvanced;
+	def->set_default_value(new ConfigOptionFloat(0));
+
+	def = this->add("infill_line_gap", coFloat);
+	def->label = L("Line Gap");
+	def->category = L("Infill");
+	def->tooltip = L("Gap between fill lines, overrides fill_density.");
+	def->sidetext = L("mm");
+	def->min = 0;
+	def->mode = comAdvanced;
+	def->set_default_value(new ConfigOptionFloat(0));
+
+	def = this->add("inherits", coString);
     def->label = L("Inherits profile");
     def->tooltip = L("Name of the profile, from which this profile inherits.");
     def->full_width = true;
@@ -3575,10 +3614,12 @@ std::string FullPrintConfig::validate()
 			return std::string("Too few layer_pattern_angle_relative");
 		if (layer_pattern_overshoot.values.size() < layer_pattern_count)
 			return std::string("Too few layer_pattern_overshoot");
+#ifdef LAYER_PATTERN_EXTRUSION
 		if (layer_pattern_extrusion_width.values.size() < layer_pattern_count)
 			return std::string("Too few layer_pattern_extrusion_width");
-		if (layer_pattern_extrusion_multipier.values.size() < layer_pattern_count)
+		if (layer_pattern_extrusion_multiplier.values.size() < layer_pattern_count)
 			return std::string("Too few layer_pattern_extrusion_multipier");
+#endif
 		if (layer_pattern_infill_first.values.size() < layer_pattern_count)
 			return std::string("Too few layer_pattern_infill_first");
 		if (layer_pattern_line_gap.values.size() < layer_pattern_count)

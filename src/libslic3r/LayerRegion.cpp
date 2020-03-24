@@ -74,6 +74,20 @@ LayerRegion::LayerRegion(Layer* layer, PrintRegion* region, std::vector<float> &
 	}
 }
 
+//	This method sets the non-LayerRegion parameters in a larger (likely Full) configuration
+void LayerRegion::applyLayerPattern(ConfigBase& config)
+{
+	if (usePatternConfig)
+	{
+		int index = patternConfig.layer_pattern_index;
+		config.set("infill_first", patternConfig.layer_pattern_infill_first.values[index]);
+#ifdef LAYER_PATTERN_EXTRUSION
+		config.set("extrusion_width", patternConfig.layer_pattern_extrusion_width.values[index]);
+		config.set("extrusion_multiplier", patternConfig.layer_pattern_extrusion_multiplier.values[index]); // This is floatS!  Per extruder...
+#endif
+	}
+}
+
 const PrintRegionConfig& LayerRegion::config() const
 {
 	if (usePatternConfig)

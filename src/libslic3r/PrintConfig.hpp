@@ -544,8 +544,10 @@ public:
 	ConfigOptionFloats					layer_pattern_fill_angle;
 	ConfigOptionBools					layer_pattern_angle_relative;
 	ConfigOptionFloats					layer_pattern_overshoot;
+#ifdef LAYER_PATTERN_EXTRUSION
 	ConfigOptionFloats					layer_pattern_extrusion_width;
-	ConfigOptionFloats					layer_pattern_extrusion_multipier;
+	ConfigOptionFloats					layer_pattern_extrusion_multiplier;
+#endif
 	ConfigOptionBools					layer_pattern_infill_first;
 	ConfigOptionFloats					layer_pattern_line_gap;
 protected:
@@ -609,8 +611,10 @@ protected:
 		OPT_PTR(layer_pattern_fill_angle);
 		OPT_PTR(layer_pattern_angle_relative);
 		OPT_PTR(layer_pattern_overshoot);
+#ifdef LAYER_PATTERN_EXTRUSION
 		OPT_PTR(layer_pattern_extrusion_width);
-		OPT_PTR(layer_pattern_extrusion_multipier);
+		OPT_PTR(layer_pattern_extrusion_multiplier);
+#endif
 		OPT_PTR(layer_pattern_infill_first);
 		OPT_PTR(layer_pattern_line_gap);
     }
