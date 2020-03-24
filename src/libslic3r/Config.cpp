@@ -429,8 +429,9 @@ void ConfigBase::set(const std::string &opt_key, int value, bool create)
 {
     ConfigOption *opt = this->option_throw(opt_key, create);
     switch (opt->type()) {
-    	case coInt:    static_cast<ConfigOptionInt*>(opt)->value = value; break;
-    	case coFloat:  static_cast<ConfigOptionFloat*>(opt)->value = value; break;
+		case coBool:   static_cast<ConfigOptionBool*>(opt)->value = value!=0; break;
+		case coInt:    static_cast<ConfigOptionInt*>(opt)->value = value; break;
+		case coFloat:  static_cast<ConfigOptionFloat*>(opt)->value = value; break;
 		case coFloatOrPercent:  static_cast<ConfigOptionFloatOrPercent*>(opt)->value = value; static_cast<ConfigOptionFloatOrPercent*>(opt)->percent = false; break;
 		case coString: static_cast<ConfigOptionString*>(opt)->value = std::to_string(value); break;
     	default: throw BadOptionTypeException("Configbase::set() - conversion from int not possible");
@@ -441,6 +442,7 @@ void ConfigBase::set(const std::string &opt_key, double value, bool create)
 {
     ConfigOption *opt = this->option_throw(opt_key, create);
     switch (opt->type()) {
+		case coBool:			static_cast<ConfigOptionBool*>(opt)->value = value!=0.0; break;
     	case coFloat:  			static_cast<ConfigOptionFloat*>(opt)->value = value; break;
     	case coFloatOrPercent:  static_cast<ConfigOptionFloatOrPercent*>(opt)->value = value; static_cast<ConfigOptionFloatOrPercent*>(opt)->percent = false; break;
 		case coString: 			static_cast<ConfigOptionString*>(opt)->value = std::to_string(value); break;
