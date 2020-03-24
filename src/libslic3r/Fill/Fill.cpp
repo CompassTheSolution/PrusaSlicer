@@ -389,6 +389,7 @@ void Layer::make_fills()
 		params.overshoot = surface_fill.params.overshoot;
 		params.shift = surface_fill.params.shift;
 		params.line_gap = surface_fill.params.line_gap;
+		params.flow_width = surface_fill.params.flow.width;
 
         for (ExPolygon &expoly : surface_fill.expolygons) {
 			// Spacing is modified by the filler to indicate adjustments. Reset it for each expolygon.

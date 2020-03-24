@@ -746,7 +746,8 @@ static inline bool emit_round_prev_next_segment(
 	size_t                                         iIntersection2,
 	Polyline& out,
 	bool                                           dir_is_next,
-	coord_t											scaled_overshoot)
+	coord_t											scaled_overshoot,
+	float											width)	// Used to calculate arc smoothness
 {
 	size_t iVerticalLineOther = iVerticalLine;
 	if (dir_is_next) {
@@ -791,7 +792,12 @@ static inline bool emit_round_prev_next_segment(
 	coord_t radius = std::abs((il.pos - il2.pos) / 2);
 
 	coord_t length = M_PI * radius;	// Length of the semi-cricle (2*Pi*R/2)
-	size_t steps = length / scale_(0.25);	// Max length of 0.25mm
+	coord_t chord = scale_(width) / 10;	// Max length of a chord segment
+	if (chord < SCALED_RESOLUTION)
+	{
+		chord = SCALED_RESOLUTION;
+	}
+	size_t steps = length / chord;
 
 	coord_t xm = (il.pos < il2.pos) ? -1 : 1;
 	coord_t ym = itsct.is_high() ? 1 : -1;
@@ -1464,7 +1470,7 @@ bool FillRectilinear2::fill_surface_by_lines(const Surface *surface, const FillP
 					}
 					case ctRound:
 					{
-						if (!emit_round_prev_next_segment(segs, i_vline, i_intersection, take_next ? iNext : iPrev, *polyline_current, take_next, scaled_overshoot))
+						if (!emit_round_prev_next_segment(segs, i_vline, i_intersection, take_next ? iNext : iPrev, *polyline_current, take_next, scaled_overshoot, params.flow_width))
 							goto dont_connect;	// Failed to do the connection for some reason
 						break;
 					}

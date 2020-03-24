@@ -37,6 +37,7 @@ struct FillParams
 	float		overshoot;
 	float		shift;
 	float		line_gap;
+	float		flow_width;	// Line width of the flow
 
     // Don't adjust spacing to fill the space evenly.
     bool        dont_adjust;
