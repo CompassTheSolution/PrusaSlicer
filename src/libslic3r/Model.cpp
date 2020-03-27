@@ -471,9 +471,10 @@ void Model::duplicate_objects_grid(size_t x, size_t y, coordf_t dist)
     if (this->objects.empty()) throw "No objects!";
 
     ModelObject* object = this->objects.front();
-    object->clear_instances();
 
-    Vec3d ext_size = object->bounding_box().size() + dist * Vec3d::Ones();
+	Vec3d ext_size = object->bounding_box().size() + dist * Vec3d::Ones();	// Get the bbox BEFORE clearing the instances!
+
+	object->clear_instances();
 
     for (size_t x_copy = 1; x_copy <= x; ++x_copy) {
         for (size_t y_copy = 1; y_copy <= y; ++y_copy) {
