@@ -183,11 +183,11 @@ int CLI::run(int argc, char **argv)
                 }
             }
         } else if (opt_key == "duplicate_grid") {
-            std::vector<int> &ints = m_config.option<ConfigOptionInts>("duplicate_grid")->values;
-            const int x = ints.size() > 0 ? ints.at(0) : 1;
-            const int y = ints.size() > 1 ? ints.at(1) : 1;
-            const double distance = fff_print_config.duplicate_distance.value;
-            for (auto &model : m_models)
+			const Vec2d& p = m_config.option<ConfigOptionPoint>("duplicate_grid")->value;
+			const int x = p.x();
+			const int y = p.y();
+			const double distance = fff_print_config.duplicate_distance.value;
+             for (auto &model : m_models)
                 model.duplicate_objects_grid(x, y, (distance > 0) ? distance : 6);  // TODO: this is not the right place for setting a default
         } else if (opt_key == "center") {
         	user_center_specified = true;
@@ -407,10 +407,10 @@ int CLI::run(int argc, char **argv)
                 if (! m_config.opt_bool("dont_arrange")) {
                     //FIXME make the min_object_distance configurable.
                     model.arrange_objects(fff_print.config().min_object_distance());
-                    model.center_instances_around_point((! user_center_specified && m_print_config.has("bed_shape")) ? 
+					model.center_instances_around_point((! user_center_specified && m_print_config.has("bed_shape")) ? 
                     	BoundingBoxf(m_print_config.opt<ConfigOptionPoints>("bed_shape")->values).center() : 
                     	m_config.option<ConfigOptionPoint>("center")->value);
-                }
+				}
                 if (printer_technology == ptFFF) {
                     for (auto* mo : model.objects)
                         fff_print.auto_assign_extruders(mo);
