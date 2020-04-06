@@ -1963,7 +1963,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(250000));
 
-    def = this->add("skirt_distance", coFloat);
+	def = this->add("simplification_error", coFloat);
+	def->label = L("Simplificatin error");
+	def->tooltip = L("Used as an error threshold for a Douglas-Peucker polyline simplification algorithm.  0 to disable.");
+	def->sidetext = L("mm");
+	def->min = 0;
+	def->mode = comExpert;
+	def->set_default_value(new ConfigOptionFloat(0.0125));	// from libslic3r.h: #define RESOLUTION 0.0125
+
+	def = this->add("skirt_distance", coFloat);
     def->label = L("Distance from object");
     def->tooltip = L("Distance between skirt and object(s). Set this to zero to attach the skirt "
                    "to the object(s) and get a brim for better adhesion.");

@@ -1825,13 +1825,16 @@ void Print::_make_brim()
     for (size_t i = 0; i < num_loops; ++ i) {
         this->throw_if_canceled();
         islands = offset(islands, float(flow.scaled_spacing()), jtSquare);
-        for (Polygon &poly : islands) {
-            // poly.simplify(SCALED_RESOLUTION);
-            poly.points.push_back(poly.points.front());
-            Points p = MultiPoint::_douglas_peucker(poly.points, SCALED_RESOLUTION);
-            p.pop_back();
-            poly.points = std::move(p);
-        }
+		if (m_config.simplification_error > 0)
+		{
+			for (Polygon& poly : islands) {
+				// poly.simplify(SCALED_RESOLUTION);
+				poly.points.push_back(poly.points.front());
+				Points p = MultiPoint::_douglas_peucker(poly.points, scale_(m_config.simplification_error));	// Was SCALED_RESOLUTION
+				p.pop_back();
+				poly.points = std::move(p);
+			}
+		}
         polygons_append(loops, offset(islands, -0.5f * float(flow.scaled_spacing())));
     }
     loops = union_pt_chained(loops, false);

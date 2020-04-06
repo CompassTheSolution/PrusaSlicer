@@ -868,7 +868,8 @@ public:
     ConfigOptionFloat               resolution;
     ConfigOptionFloats              retract_before_travel;
     ConfigOptionBools               retract_layer_change;
-    ConfigOptionFloat               skirt_distance;
+	ConfigOptionFloat               simplification_error;
+	ConfigOptionFloat               skirt_distance;
     ConfigOptionInt                 skirt_height;
     ConfigOptionInt                 skirts;
     ConfigOptionInts                slowdown_below_layer_time;
@@ -940,8 +941,9 @@ protected:
         OPT_PTR(resolution);
         OPT_PTR(retract_before_travel);
         OPT_PTR(retract_layer_change);
-        OPT_PTR(skirt_distance);
-        OPT_PTR(skirt_height);
+		OPT_PTR(simplification_error);
+		OPT_PTR(skirt_distance);
+		OPT_PTR(skirt_height);
         OPT_PTR(skirts);
         OPT_PTR(slowdown_below_layer_time);
         OPT_PTR(spiral_vase);
