@@ -793,10 +793,6 @@ static inline bool emit_round_prev_next_segment(
 
 	coord_t length = M_PI * radius;	// Length of the semi-cricle (2*Pi*R/2)
 	coord_t chord = scale_(width) / 10;	// Max length of a chord segment
-	if (chord < SCALED_RESOLUTION)
-	{
-		chord = SCALED_RESOLUTION;
-	}
 	size_t steps = length / chord;
 
 	coord_t xm = (il.pos < il2.pos) ? -1 : 1;
