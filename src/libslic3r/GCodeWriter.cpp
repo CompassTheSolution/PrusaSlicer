@@ -366,6 +366,20 @@ bool GCodeWriter::will_move_z(double z) const
     return true;
 }
 
+std::string GCodeWriter::extrude_to_z(double z, double dE, const std::string& comment)
+{
+	m_pos(2) = z;
+	m_lifted = 0;
+	m_extruder->extrude(dE);
+
+	std::ostringstream gcode;
+	gcode << "G1 Z" << XYZF_NUM(z)
+		<< " " << m_extrusion_axis << E_NUM(m_extruder->E());
+	COMMENT(comment);
+	gcode << "\n";
+	return gcode.str();
+}
+
 std::string GCodeWriter::extrude_to_xy(const Vec2d &point, double dE, const std::string &comment)
 {
     m_pos(0) = point(0);
@@ -381,20 +395,20 @@ std::string GCodeWriter::extrude_to_xy(const Vec2d &point, double dE, const std:
     return gcode.str();
 }
 
-std::string GCodeWriter::extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment)
+std::string GCodeWriter::extrude_to_xyz(const Vec3d& point, double dE, const std::string& comment)
 {
-    m_pos = point;
-    m_lifted = 0;
-    m_extruder->extrude(dE);
-    
-    std::ostringstream gcode;
-    gcode << "G1 X" << XYZF_NUM(point(0))
-          <<   " Y" << XYZF_NUM(point(1))
-          <<   " Z" << XYZF_NUM(point(2))
-          <<    " " << m_extrusion_axis << E_NUM(m_extruder->E());
-    COMMENT(comment);
-    gcode << "\n";
-    return gcode.str();
+	m_pos = point;
+	m_lifted = 0;
+	m_extruder->extrude(dE);
+
+	std::ostringstream gcode;
+	gcode << "G1 X" << XYZF_NUM(point(0))
+		<< " Y" << XYZF_NUM(point(1))
+		<< " Z" << XYZF_NUM(point(2))
+		<< " " << m_extrusion_axis << E_NUM(m_extruder->E());
+	COMMENT(comment);
+	gcode << "\n";
+	return gcode.str();
 }
 
 std::string GCodeWriter::retract(bool before_wipe)

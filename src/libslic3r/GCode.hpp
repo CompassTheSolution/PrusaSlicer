@@ -151,8 +151,9 @@ public:
         m_layer(nullptr), 
         m_volumetric_speed(0),
         m_last_pos_defined(false),
+		m_last_mm3_per_mm(0.0),
         m_last_extrusion_role(erNone),
-        m_last_mm3_per_mm(GCodeAnalyzer::Default_mm3_per_mm),
+		m_last_analyzer_mm3_per_mm(GCodeAnalyzer::Default_mm3_per_mm),
         m_last_width(GCodeAnalyzer::Default_Width),
         m_last_height(GCodeAnalyzer::Default_Height),
         m_brim_done(false),
@@ -336,7 +337,7 @@ private:
     // Markers for the Pressure Equalizer to recognize the extrusion type.
     // The Pressure Equalizer removes the markers from the final G-code.
     bool                                m_enable_extrusion_role_markers;
-    // Enableds the G-code Analyzer.
+    // Enables the G-code Analyzer.
     // Extended markers will be added during G-code generation.
     // The G-code Analyzer will remove these comments from the final G-code.
     bool                                m_enable_analyzer;
@@ -354,12 +355,13 @@ private:
     // Support for the extrusion role markers. Which marker is active?
     ExtrusionRole                       m_last_extrusion_role;
     // Support for G-Code Analyzer
-    double                              m_last_mm3_per_mm;
+    double                              m_last_analyzer_mm3_per_mm;
     float                               m_last_width;
     float                               m_last_height;
 
     Point                               m_last_pos;
     bool                                m_last_pos_defined;
+	double								m_last_mm3_per_mm;
 
     std::unique_ptr<CoolingBuffer>      m_cooling_buffer;
     std::unique_ptr<SpiralVase>         m_spiral_vase;

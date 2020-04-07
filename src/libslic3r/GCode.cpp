@@ -1139,7 +1139,7 @@ void GCode::_do_export(Print& print, FILE* file)
     DoExport::init_gcode_analyzer(print.config(), m_analyzer);
 
     // resets analyzer's tracking data
-    m_last_mm3_per_mm = GCodeAnalyzer::Default_mm3_per_mm;
+	m_last_analyzer_mm3_per_mm = GCodeAnalyzer::Default_mm3_per_mm;
     m_last_width = GCodeAnalyzer::Default_Width;
     m_last_height = GCodeAnalyzer::Default_Height;
 
@@ -2259,10 +2259,13 @@ void GCode::process_layer(
                         instance_to_print.object_by_extruder.support->chained_path_from(m_last_pos, instance_to_print.object_by_extruder.support_extrusion_role));
                     m_layer = layers[instance_to_print.layer_id].layer();
                 }
-                for (ObjectByExtruder::Island &island : instance_to_print.object_by_extruder.islands) {
-                    const auto& by_region_specific = is_anything_overridden ? island.by_region_per_copy(by_region_per_copy_cache, static_cast<unsigned int>(instance_to_print.instance_id), extruder_id, print_wipe_extrusions != 0) : island.by_region;
 #define USE_LAYER_PATTERNS
 #ifdef USE_LAYER_PATTERNS
+				// Need to loop first and second so that all perimeter or infill is done first as specified by region
+				// This is because perimeter and infill may be in different islands, but infill may need to go first
+				for (int second = 0; second <= 1; second++)
+				for (ObjectByExtruder::Island& island : instance_to_print.object_by_extruder.islands) {
+					const auto& by_region_specific = is_anything_overridden ? island.by_region_per_copy(by_region_per_copy_cache, static_cast<unsigned int>(instance_to_print.instance_id), extruder_id, print_wipe_extrusions != 0) : island.by_region;
 					for (const ObjectByExtruder::Island::Region& region : by_region_specific) {
 						size_t region_id = &region - &by_region_specific.front();
 						PrintRegion* const printRegion = print.regions()[region_id];
@@ -2272,15 +2275,18 @@ void GCode::process_layer(
 						layerm->applyLayerPattern(m_config);
 						PrintRegionConfig prConfig = layerm->config();
 						if (m_config.infill_first) {
-							gcode += this->extrude_region_infill(print, region);
-							gcode += this->extrude_region_perimeters(print, region, lower_layer_edge_grids[instance_to_print.layer_id]);
+							if (!second) gcode += this->extrude_region_infill(print, region);
+							else gcode += this->extrude_region_perimeters(print, region, lower_layer_edge_grids[instance_to_print.layer_id]);
 						}
 						else {
-							gcode += this->extrude_region_perimeters(print, region, lower_layer_edge_grids[instance_to_print.layer_id]);
-							gcode += this->extrude_region_infill(print, region);
+							if (!second) gcode += this->extrude_region_perimeters(print, region, lower_layer_edge_grids[instance_to_print.layer_id]);
+							else gcode += this->extrude_region_infill(print, region);
 						}
 					}
+				}
 #else
+				for (ObjectByExtruder::Island& island : instance_to_print.object_by_extruder.islands) {
+					const auto& by_region_specific = is_anything_overridden ? island.by_region_per_copy(by_region_per_copy_cache, static_cast<unsigned int>(instance_to_print.instance_id), extruder_id, print_wipe_extrusions != 0) : island.by_region;
 					//FIXME the following code prints regions in the order they are defined, the path is not optimized in any way.
                     if (print.config().infill_first) {
                         gcode += this->extrude_infill(print, by_region_specific);
@@ -2289,8 +2295,8 @@ void GCode::process_layer(
                         gcode += this->extrude_perimeters(print, by_region_specific, lower_layer_edge_grids[instance_to_print.layer_id]);
                         gcode += this->extrude_infill(print,by_region_specific);
                     }
+			}
 #endif
-				}
                 if (this->config().gcode_label_objects)
 					gcode += std::string("; stop printing object ") + instance_to_print.print_object.model_object()->name + " id:" + std::to_string(instance_to_print.layer_id) + " copy " + std::to_string(instance_to_print.instance_id) + "\n";
             }
@@ -2404,14 +2410,30 @@ std::string GCode::change_layer(coordf_t print_z)
         // Increment a progress bar indicator.
         gcode += m_writer.update_progress(++ m_layer_index, m_layer_count);
     coordf_t z = print_z + m_config.z_offset.value;  // in unscaled coordinates
-    if (EXTRUDER_CONFIG(retract_layer_change) && m_writer.will_move_z(z))
-        gcode += this->retract();
 
-    {
-        std::ostringstream comment;
-        comment << "move to next layer (" << m_layer_index << ")";
-        gcode += m_writer.travel_to_z(z, comment.str());
-    }
+	if (m_config.layer_pattern_continuous_print && m_last_mm3_per_mm != 0.0)
+	{
+		double e_per_mm = m_writer.extruder()->e_per_mm3() * m_last_mm3_per_mm;
+		if (m_writer.extrusion_axis().empty()) e_per_mm = 0;
+
+		std::ostringstream comment;
+		comment << "extrude to next layer (" << m_layer_index << ")";
+
+		Vec3d fromPos = m_writer.get_position();
+		double line_length = abs(z - fromPos(2));
+		gcode += m_writer.extrude_to_z(z, e_per_mm * line_length, comment.str());
+	}
+	else
+	{
+		if (EXTRUDER_CONFIG(retract_layer_change) && m_writer.will_move_z(z))
+			gcode += this->retract();
+
+		{
+			std::ostringstream comment;
+			comment << "move to next layer (" << m_layer_index << ")";
+			gcode += m_writer.travel_to_z(z, comment.str());
+		}
+	}
     
     // forget last wiping path as wiping after raising Z is pointless
     m_wipe.reset_path();
@@ -3037,15 +3059,32 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     if (is_bridge(path.role()))
         description += " (bridge)";
     
-    // go to first point of extrusion path
-    if (!m_last_pos_defined || m_last_pos != path.first_point()) {
-        gcode += this->travel_to(
-            path.first_point(),
-            path.role(),
-            "move to first " + description + " point"
-        );
+	// calculate extrusion length per distance unit
+	double e_per_mm = m_writer.extruder()->e_per_mm3() * path.mm3_per_mm;
+	if (m_writer.extrusion_axis().empty()) e_per_mm = 0;
+
+	// go to first point of extrusion path
+	if (!m_last_pos_defined || m_last_pos != path.first_point()) {
+		if (m_config.layer_pattern_continuous_print && m_last_mm3_per_mm != 0.0)
+		{
+			Polyline line;
+			line.append(this->last_pos());
+			line.append(path.first_point());
+
+			const double line_length = line.length() * SCALING_FACTOR;
+			gcode += m_writer.extrude_to_xy(
+				this->point_to_gcode(path.first_point()),
+				e_per_mm * line_length,
+				"continuous print to first " + description + " point");
+		} else
+			gcode += this->travel_to(
+				path.first_point(),
+				path.role(),
+				"move to first " + description + " point"
+			);
     }
-    
+	m_last_mm3_per_mm = e_per_mm;	// Record for use in continuous_print layer changes
+
     // compensate retraction
     gcode += this->unretract();
     
@@ -3065,10 +3104,6 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         }
         gcode += m_writer.set_acceleration((unsigned int)floor(acceleration + 0.5));
     }
-    
-    // calculate extrusion length per distance unit
-    double e_per_mm = m_writer.extruder()->e_per_mm3() * path.mm3_per_mm;
-    if (m_writer.extrusion_axis().empty()) e_per_mm = 0;
     
     // set speed
     if (speed == -1) {
@@ -3140,10 +3175,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             gcode += buf;
         }
 
-        if (last_was_wipe_tower || (m_last_mm3_per_mm != path.mm3_per_mm))
+        if (last_was_wipe_tower || (m_last_analyzer_mm3_per_mm != path.mm3_per_mm))
         {
-            m_last_mm3_per_mm = path.mm3_per_mm;
-            sprintf(buf, ";%s%f\n", GCodeAnalyzer::Mm3_Per_Mm_Tag.c_str(), m_last_mm3_per_mm);
+			m_last_analyzer_mm3_per_mm = path.mm3_per_mm;
+            sprintf(buf, ";%s%f\n", GCodeAnalyzer::Mm3_Per_Mm_Tag.c_str(), m_last_analyzer_mm3_per_mm);
             gcode += buf;
         }
 
