@@ -26,7 +26,7 @@ typedef double  coordf_t;
 
 //FIXME This epsilon value is used for many non-related purposes:
 // For a threshold of a squared Euclidean distance,
-// for a trheshold in a difference of radians,
+// for a threshold in a difference of radians,
 // for a threshold of a cross product of two non-normalized vectors etc.
 #define EPSILON 1e-4
 // Scaling factor for a conversion from coord_t to coordf_t: 10e-6

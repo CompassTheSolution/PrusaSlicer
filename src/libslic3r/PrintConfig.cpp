@@ -1964,7 +1964,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInt(250000));
 
 	def = this->add("simplification_error", coFloat);
-	def->label = L("Simplificatin error");
+	def->label = L("Simplification error");
 	def->tooltip = L("Used as an error threshold for a Douglas-Peucker polyline simplification algorithm.  0 to disable.");
 	def->sidetext = L("mm");
 	def->min = 0;
