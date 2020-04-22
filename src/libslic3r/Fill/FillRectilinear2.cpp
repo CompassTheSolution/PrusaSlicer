@@ -961,9 +961,9 @@ bool FillRectilinear2::fill_surface_by_lines(const Surface *surface, const FillP
 
     assert(params.density > 0.0001f && params.density <= 1.f);
 	coord_t line_spacing;
-	if (params.line_gap == 0.0 || params.line_gap < this->spacing)
+	if (params.line_gap == 0.0)
 		line_spacing = coord_t(scale_(this->spacing) / params.density);
-	else line_spacing = coord_t(scale_(params.line_gap));
+	else line_spacing = coord_t(scale_(params.line_gap + this->spacing));
 
     // On the polygons of poly_with_offset, the infill lines will be connected.
     ExPolygonWithOffset poly_with_offset(

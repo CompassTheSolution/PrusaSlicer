@@ -353,7 +353,7 @@ void PrintConfigDef::init_layer_pattern_params()
 	def = this->add("layer_pattern_line_gap", coFloats);
 	def->label = L("LP:Line gap");
 	def->category = L("Layer Patterns");
-	def->tooltip = L("Distance between fill line centers.  Non-Zero overrides fill density.");
+	def->tooltip = L("Distance between fill line edges.  Non-Zero overrides fill density.");
 	def->mode = layerPatternMode;
 	def->set_default_value(new ConfigOptionFloats{ });
 
